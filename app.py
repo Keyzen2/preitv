@@ -5,6 +5,11 @@ import json
 from datetime import date
 from pathlib import Path
 from PIL import Image
+import os
+import streamlit as st
+
+# Forzar a Streamlit a usar el tema desde "streamlit/config.toml" (sin punto delante)
+os.environ["STREAMLIT_CONFIG_FILE"] = os.path.join(os.path.dirname(__file__), "streamlit", "config.toml")
 
 st.set_page_config(page_title="PreITV.com", page_icon="🚗", layout="centered")
 
