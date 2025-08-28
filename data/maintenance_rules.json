@@ -1,0 +1,94 @@
+{
+  "age_bands": [
+    {
+      "max_years": 3,
+      "tasks": [
+        "Niveles: aceite, refrigerante, líquido de frenos y limpiaparabrisas",
+        "Luces: cortas, largas, posición, freno, intermitentes y matrícula",
+        "Neumáticos: desgaste (>1.6mm), sin grietas; presión correcta",
+        "Frenos: prueba dinámica; sin ruidos y sin desvío",
+        "Cinturones, claxon y limpiaparabrisas operativos"
+      ]
+    },
+    {
+      "max_years": 7,
+      "tasks": [
+        "Todo lo anterior",
+        "Suspensión: amortiguadores sin fugas; comprobación de rebote",
+        "Escape: anclajes; detectar fugas o óxido",
+        "Correas auxiliares: estado visual y tensado",
+        "Holguras en ejes y rótulas (ruidos en baches)"
+      ]
+    },
+    {
+      "max_years": 12,
+      "tasks": [
+        "Todo lo anterior",
+        "Batería y sistema de carga: test rápido",
+        "Dirección: holguras y cremallera; alineación si deriva",
+        "Bajos y largueros: oxidación y golpes",
+        "Anclajes de asientos y bisagras de puertas"
+      ]
+    },
+    {
+      "max_years": 25,
+      "tasks": [
+        "Todo lo anterior",
+        "Frenos: medir discos/tambores; purga si >2 años",
+        "Juntas y manguitos: fisuras y fugas",
+        "Soportes de motor y transmisión: grietas o hundimiento",
+        "Estado de catalizador/FAP (visual)"
+      ]
+    }
+  ],
+  "fuel_overrides": {
+    "Diésel": [
+      "Comprobar humo visible y sistema antipolución (FAP/DPF)",
+      "Nivel y funcionamiento de AdBlue (si aplica)"
+    ],
+    "Gasolina": [
+      "Bujías y filtro de aire en buen estado",
+      "Sistema EVAP sin olores a combustible"
+    ],
+    "Híbrido": [
+      "Chequeo visual de cableado de alta tensión (sin manipular)",
+      "Sistema de refrigeración adicional de inversor/batería (si aplica)"
+    ],
+    "Eléctrico": [
+      "Estado visual de conectores y cableado",
+      "Sistema de frenos (poca fricción por regeneración): comprobar pastillas"
+    ]
+  },
+  "mileage_tips": [
+    {
+      "min_km": 80000,
+      "tips": [
+        "Valorar cambio de amortiguadores si nunca se han reemplazado",
+        "Revisar holguras en rótulas/bieletas",
+        "Cambio de líquido de frenos si >2 años"
+      ]
+    },
+    {
+      "min_km": 150000,
+      "tips": [
+        "Revisión profunda de distribución (si aplica por km/tiempo)",
+        "Cojinetes de rueda y homocinéticas: ruidos o juego",
+        "Soportes de motor/dirección: fatiga"
+      ]
+    }
+  ],
+  "brand_specific": {
+    "Volkswagen": [
+      "Verificar luces de freno LED y funcionamiento de DRL"
+    ],
+    "Renault": [
+      "Revisar captador ABS por suciedad en ruedas traseras"
+    ],
+    "Seat": [
+      "Chequeo de silentblocks de trapecios (ruidos al frenar)"
+    ],
+    "Toyota": [
+      "Filtro de cabina frecuentemente saturado (clima)"
+    ]
+  }
+}
