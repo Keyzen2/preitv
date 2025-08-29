@@ -92,16 +92,22 @@ def render_login_form():
                 except Exception as e:
                     st.error(f"Error al registrarse: {e}")
 
-def render_main_app():
-    # -----------------------------
-# Carga de datos del usuario
 # -----------------------------
- 
-if st.session_state.user and not st.session_state.get("data_loaded"):
-    historial, historial_rutas = load_user_data(str(st.session_state.user.id))
-    st.session_state.historial = historial
-    st.session_state.historial_rutas = historial_rutas
-    st.session_state.data_loaded = True
+# Render Aplicación Principal
+# -----------------------------
+def render_main_app():
+    # Inicializamos Supabase en session_state si no existe
+    if "supabase" not in st.session_state:
+        from services.supabase_client import supabase
+        st.session_state.supabase = supabase
+
+    # Cargamos historial desde Supabase solo una vez
+    if st.session_state.user and not st.session_state.get("data_loaded"):
+        historial, historial_rutas = load_user_data(str(st.session_state.user.id))
+        st.session_state.historial = historial
+        st.session_state.historial_rutas = historial_rutas
+        st.session_state.data_loaded = True
+
     # -----------------------------
     # Panel usuario
     # -----------------------------
