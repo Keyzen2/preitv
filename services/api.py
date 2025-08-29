@@ -44,25 +44,17 @@ def get_models(make: str):
 # -----------------------------
 # Funciones de talleres
 # -----------------------------
-def normalize_name(name):
-    """Quita acentos y normaliza el nombre de la ciudad."""
+def normalize_name(name: str) -> str:
+    """Quita acentos y normaliza cadenas."""
     return ''.join(c for c in unicodedata.normalize('NFD', name) if unicodedata.category(c) != 'Mn')
 
 def procesar_talleres(elements):
     """Procesa los elementos obtenidos de Overpass y devuelve información de talleres."""
-    def extract(el):
+    talleres = []
+    for el in elements:
         tags = el.get("tags", {}) or {}
-        name = tags.get("name")
-        phone = tags.get("phone") or tags.get("contact:phone")
-        website = tags.get("website") or tags.get("contact:website")
-        opening_hours = tags.get("opening_hours")
-
-        if el.get("type") == "node":
-            lat, lon = el.get("lat"), el.get("lon")
-        else:
-            center = el.get("center") or {}
-            lat, lon = center.get("lat"), center.get("lon")
-
+        lat = el.get("lat") or el.get("center", {}).get("lat")
+        lon = el.get("lon") or el.get("center", {}).get("lon")
         street = tags.get("addr:street")
         housenumber = tags.get("addr:housenumber")
         postcode = tags.get("addr:postcode")
@@ -70,83 +62,77 @@ def procesar_talleres(elements):
         address = None
         if street or housenumber or postcode or city_tag:
             parts = []
-            if street:
-                parts.append(street)
-            if housenumber:
-                parts.append(housenumber)
-            if postcode or city_tag:
-                parts.append(f"{postcode or ''} {city_tag}".strip())
+            if street: parts.append(street)
+            if housenumber: parts.append(housenumber)
+            if postcode or city_tag: parts.append(f"{postcode or ''} {city_tag}".strip())
             address = ", ".join(parts)
-
         score = 0
-        if name: score += 3
-        if phone: score += 2
-        if website: score += 1
-        if opening_hours: score += 1
+        if tags.get("name"): score += 3
+        if tags.get("phone"): score += 2
+        if tags.get("website"): score += 1
+        if tags.get("opening_hours"): score += 1
         if tags.get("brand"): score += 1
-
-        return {
-            "name": name,
-            "phone": phone,
-            "website": website,
-            "opening_hours": opening_hours,
+        talleres.append({
+            "name": tags.get("name"),
+            "phone": tags.get("phone") or tags.get("contact:phone"),
+            "website": tags.get("website") or tags.get("contact:website"),
+            "opening_hours": tags.get("opening_hours"),
             "address": address,
             "lat": lat,
             "lon": lon,
             "score": score
-        }
-
-    items = [extract(e) for e in elements]
-    return sorted(items, key=lambda x: (-x["score"], x.get("name") or "ZZZZ"))
+        })
+    return sorted(talleres, key=lambda x: (-x["score"], x.get("name") or "ZZZZ"))
 
 @st.cache_data(ttl=3600)
-def search_workshops(city, limit=5, radio_metros=5000):
-    """
-    Busca talleres mecánicos en una ciudad de España usando Overpass API.
-    Método: nodo place=city/town/village + búsqueda radial.
-    """
+def search_workshops(city: str, limit: int = 5):
+    """Busca talleres mecánicos en una ciudad de España usando Overpass con fallback."""
     if not city:
         return []
 
     city_norm = normalize_name(city)
+    ENDPOINTS = [
+        "https://overpass-api.de/api/interpreter",
+        "https://overpass.kumi.systems/api/interpreter",
+        "https://overpass.nchc.org.tw/api/interpreter"
+    ]
 
-    # Query: localizar nodo de la ciudad y buscar talleres en radio
-    query = f"""
-    [out:json][timeout:60];
-    node["place"~"city|town|village"]["name"="{city_norm}"]->.city;
+    # Query principal: busca nodos/ways/relations con amenity=car_repair que contengan el nombre de la ciudad
+    query_main = f"""
+    [out:json][timeout:25];
     (
-      node["amenity"="car_repair"](around.city:{radio_metros});
-      way["amenity"="car_repair"](around.city:{radio_metros});
-      relation["amenity"="car_repair"](around.city:{radio_metros});
+      node["amenity"="car_repair"]["name"~"{city_norm}", i];
+      way["amenity"="car_repair"]["name"~"{city_norm}", i];
+      relation["amenity"="car_repair"]["name"~"{city_norm}", i];
     );
     out center tags;
     """
 
-    ENDPOINTS = [
-        "https://overpass.kumi.systems/api/interpreter",
-        "https://overpass.nchc.org.tw/api/interpreter",
-        "https://overpass-api.de/api/interpreter"
-    ]
+    # Fallback: buscar por área administrativa
+    query_fallback = f"""
+    [out:json][timeout:25];
+    area["name"~"{city}", i]["place"~"city|town"];
+    (
+      node["amenity"="car_repair"](area);
+      way["amenity"="car_repair"](area);
+      relation["amenity"="car_repair"](area);
+    );
+    out center tags;
+    """
 
     elements = []
     for ep in ENDPOINTS:
-        try:
-            res = requests.post(ep, data={"data": query}, timeout=60)
-            res.raise_for_status()
-            data = res.json()
-            if data.get("elements"):
-                elements = data["elements"]
-                break
-        except Exception as e:
-            logging.warning(f"Overpass endpoint {ep} falló: {e}")
+        for q in [query_main, query_fallback]:
+            try:
+                res = requests.post(ep, data={"data": q}, timeout=25)
+                res.raise_for_status()
+                data = res.json()
+                if data.get("elements"):
+                    elements = data["elements"]
+                    break
+            except Exception as e:
+                logging.warning(f"Overpass endpoint {ep} falló: {e}")
+        if elements:
+            break
 
     return procesar_talleres(elements)[:limit]
-
-
-
-
-
-
-
-
-
