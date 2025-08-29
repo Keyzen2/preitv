@@ -4,24 +4,25 @@ from config import APP_TITLE, APP_ICON
 from services.api import get_makes, get_models, get_brand_image
 from utils.helpers import local_css, recomendaciones_itv_detalladas
 
-# Configuración
+# Configuración de página
 st.set_page_config(page_title=APP_TITLE, page_icon=APP_ICON, layout="centered")
 local_css("styles/theme.css")
 
-# Inicializar histórico
+# Inicializar variables de sesión
 if "historial" not in st.session_state:
     st.session_state.historial = []
 if "checklist" not in st.session_state:
     st.session_state.checklist = []
 
-# UI principal
+# Título y descripción
 st.title("🚗 Buscador de Vehículos (Versión PRO)")
-st.write("Selecciona una marca y modelo disponible en Europa.")
+st.write("Selecciona una marca y modelo disponible en Europa para ver recomendaciones de mantenimiento.")
 
-# Marcas y modelos
+# Cargar marcas (filtradas por las comercializadas en Europa en config.py)
 with st.spinner("Cargando marcas..."):
     makes = get_makes()
 
+# Desplegables con placeholder en español
 marca = st.selectbox("Marca", options=makes, index=None, placeholder="Elige una marca")
 modelos = get_models(marca) if marca else []
 modelo = st.selectbox("Modelo", options=modelos, index=None, placeholder="Elige un modelo")
@@ -31,7 +32,7 @@ anio = st.number_input("Año de matriculación", min_value=1980, max_value=datet
 km = st.number_input("Kilometraje", min_value=0, step=1000)
 combustible = st.selectbox("Combustible", ["Gasolina", "Diésel", "Híbrido", "Eléctrico"])
 
-# Botones
+# Botones principales
 col1, col2 = st.columns(2)
 
 with col1:
@@ -46,11 +47,11 @@ with col1:
             else:
                 st.info("No se encontró imagen para esta marca.")
 
-            # Generar y guardar recomendaciones
+            # Generar recomendaciones y guardar en sesión
             edad = datetime.date.today().year - anio
             st.session_state.checklist = recomendaciones_itv_detalladas(edad, km, combustible)
 
-            # Guardar en histórico
+            # Guardar búsqueda en histórico
             registro = {
                 "marca": marca,
                 "modelo": modelo,
@@ -68,11 +69,14 @@ with col2:
         if st.session_state.historial:
             st.subheader("Histórico de coches consultados en esta sesión")
             for item in st.session_state.historial:
-                st.markdown(f"**{item['marca']} {item['modelo']}** — {item['anio']} — {item['km']} km — {item['combustible']}")
+                st.markdown(
+                    f"**{item['marca']} {item['modelo']}** — {item['anio']} — "
+                    f"{item['km']} km — {item['combustible']}"
+                )
         else:
             st.info("Aún no has consultado ningún coche.")
 
-# Mostrar checklist (si existe)
+# Mostrar recomendaciones si existen
 if st.session_state.checklist:
     st.subheader("✅ Recomendaciones antes de la ITV")
     for tarea in st.session_state.checklist:
