@@ -218,4 +218,53 @@ if st.session_state.talleres:
         linea_titulo = f"**{i}. {nombre}**"
         if web:
             linea_titulo = f"[{linea_titulo}]({web})"
+                    st.markdown("---")
+
+# -----------------------------
+# 🗺️ Planificador de ruta y coste de combustible
+# -----------------------------
+st.subheader("🗺️ Planificador de ruta y coste de combustible")
+
+col_r1, col_r2 = st.columns(2)
+with col_r1:
+    origen_nombre = st.text_input("Ciudad de origen", "Almería")
+with col_r2:
+    destino_nombre = st.text_input("Ciudad de destino", "Sevilla")
+
+col_r3, col_r4, col_r5 = st.columns(3)
+with col_r3:
+    consumo = st.number_input("Consumo medio (L/100km)", min_value=3.0, max_value=20.0, value=6.5)
+with col_r4:
+    precio = st.number_input("Precio combustible (€/L)", min_value=0.5, max_value=3.0, value=1.6)
+with col_r5:
+    calcular_ruta = st.button("Calcular ruta y coste")
+
+if calcular_ruta:
+    coords_origen = geocode_city(origen_nombre)
+    coords_destino = geocode_city(destino_nombre)
+
+    if not coords_origen or not coords_destino:
+        st.error("No se pudo obtener la ubicación de una o ambas ciudades.")
+    else:
+        lat_o, lon_o = coords_origen
+        lat_d, lon_d = coords_destino
+
+        with st.spinner(f"Calculando ruta de {origen_nombre} a {destino_nombre}..."):
+            ruta = get_route((lon_o, lat_o), (lon_d, lat_d))
+
+        if ruta:
+            distancia_km, duracion_min, coords_linea = ruta
+            litros, coste = calcular_coste(distancia_km, consumo, precio)
+
+            st.success(f"Distancia: {distancia_km:.1f} km — Duración: {duracion_min:.0f} min")
+            st.info(f"Consumo estimado: {litros} L — Coste estimado: {coste} €")
+
+            # Mapa con folium
+            m = folium.Map(location=[lat_o, lon_o], zoom_start=6)
+            folium.Marker([lat_o, lon_o], tooltip=f"Origen: {origen_nombre}").add_to(m)
+            folium.Marker([lat_d, lon_d], tooltip=f"Destino: {destino_nombre}").add_to(m)
+            folium.PolyLine([(lat, lon) for lon, lat in coords_linea], color="blue", weight=4).add_to(m)
+            st_folium(m, width=700, height=500)
+        else:
+            st.error("No se pudo calcular la ruta.")
 
