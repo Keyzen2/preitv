@@ -6,7 +6,7 @@ from config import EUROPEAN_MAKES
 
 @st.cache_data(ttl=86400)
 def get_makes():
-    """Obtiene marcas de la API NHTSA y filtra solo las europeas."""
+    """Obtiene marcas de la API NHTSA y filtra solo las que están en EUROPEAN_MAKES."""
     try:
         url = "https://vpic.nhtsa.dot.gov/api/vehicles/GetAllMakes?format=json"
         res = requests.get(url, timeout=10)
@@ -39,7 +39,10 @@ def get_models(make: str):
 
 @st.cache_data(ttl=3600)
 def search_workshops(city: str, limit: int = 5):
-    """Busca hasta 'limit' talleres (amenity=car_repair) en una ciudad española usando Overpass API."""
+    """
+    Busca talleres (amenity=car_repair) en una ciudad española usando Overpass API.
+    Devuelve hasta 'limit' resultados.
+    """
     city = city.strip()
     if not city:
         return []
@@ -48,7 +51,7 @@ def search_workshops(city: str, limit: int = 5):
     city_escaped = city.replace('"', '\\"')
 
     query = f"""
-    [out:json][timeout:15];
+    [out:json][timeout:25];
     area["boundary"="administrative"]["name"="{city_escaped}"]["admin_level"="8"];
     (
       node["amenity"="car_repair"](area);
@@ -59,7 +62,7 @@ def search_workshops(city: str, limit: int = 5):
     """
 
     try:
-        res = requests.post(overpass_url, data={"data": query}, timeout=15)
+        res = requests.post(overpass_url, data={"data": query}, timeout=25)
         res.raise_for_status()
         data = res.json()
     except requests.RequestException as e:
@@ -71,6 +74,7 @@ def search_workshops(city: str, limit: int = 5):
 
     elements = data.get("elements", [])
     if not elements:
+        logging.info(f"No se encontraron talleres en {city}")
         return []
 
     def extract(el):
@@ -116,10 +120,8 @@ def search_workshops(city: str, limit: int = 5):
             "score": score
         }
 
-    # Extraer y ordenar solo hasta 'limit'
     items = sorted([extract(e) for e in elements], key=lambda x: (-x["score"], (x["name"] or "ZZZZ")))
     return items[:limit]
-
 
 
 
