@@ -11,28 +11,6 @@ from services.routes import get_route, calcular_coste
 from services.supabase_client import sign_in, sign_up, sign_out, save_search, save_route, load_user_data
 from utils.helpers import local_css, recomendaciones_itv_detalladas, resumen_proximos_mantenimientos, ciudades_es
 
-def render_user_panel():
-    st.subheader("👤 Panel de usuario")
-    # Nombre editable
-    nombre_actual = st.session_state.user.user_metadata.get("full_name", "")
-    nuevo_nombre = st.text_input("Nombre", value=nombre_actual)
-    # Contraseña editable
-    nueva_password = st.text_input("Nueva contraseña", type="password")
-    if st.button("Guardar cambios"):
-        try:
-            updates = {}
-            if nuevo_nombre != nombre_actual:
-                updates["full_name"] = nuevo_nombre
-            if nueva_password:
-                updates["password"] = nueva_password
-            if updates:
-                supabase.auth.update_user(updates)
-                st.success("Cambios guardados correctamente")
-                # Actualizamos localmente
-                st.session_state.user.user_metadata["full_name"] = nuevo_nombre
-        except Exception as e:
-            st.error(f"No se pudieron guardar los cambios: {e}")
-
 # -----------------------------
 # Configuración de página y CSS
 # -----------------------------
@@ -131,13 +109,12 @@ def render_main_app():
         st.session_state.data_loaded = True
 
     # -----------------------------
-    # Panel usuario
-    # -----------------------------
-    # Columnas para saludo y cerrar sesión
+# 👤 Saludo y panel de usuario
+# -----------------------------
 col_user1, col_user2 = st.columns([3, 1])
 with col_user1:
     if st.button(f"👋 Hola, {st.session_state.user.email}"):
-        st.session_state.show_user_panel = True
+        st.session_state.show_user_panel = not st.session_state.get("show_user_panel", False)
 with col_user2:
     if st.button("Cerrar sesión"):
         sign_out()
@@ -148,6 +125,30 @@ with col_user2:
         for key in defaults:
             st.session_state[key] = None if key == "user" else []
         st.experimental_rerun()
+
+# -----------------------------
+# Panel de usuario editable
+# -----------------------------
+if st.session_state.get("show_user_panel"):
+    st.subheader("👤 Panel de usuario")
+    nombre_actual = st.session_state.user.user_metadata.get("full_name", "")
+    nuevo_nombre = st.text_input("Nombre", value=nombre_actual)
+    nueva_password = st.text_input("Nueva contraseña", type="password")
+
+    if st.button("Guardar cambios"):
+        try:
+            updates = {}
+            if nuevo_nombre != nombre_actual:
+                updates["full_name"] = nuevo_nombre
+            if nueva_password:
+                updates["password"] = nueva_password
+            if updates:
+                supabase.auth.update_user(updates)
+                st.success("Cambios guardados correctamente")
+                # Actualizamos localmente
+                st.session_state.user.user_metadata["full_name"] = nuevo_nombre
+        except Exception as e:
+            st.error(f"No se pudieron guardar los cambios: {e}")
 
     # -----------------------------
     # Buscador de vehículos
