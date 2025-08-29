@@ -3,15 +3,13 @@ import requests
 import streamlit as st
 import folium
 from streamlit_folium import st_folium
-
-from config import APP_TITLE, APP_ICON, ciudades_es
 from services.api import get_makes, get_models, search_workshops
 from services.routes import get_route, calcular_coste
 from services.supabase_client import (
     sign_in, sign_up, sign_out, save_search, save_route,
     get_user_profile, update_user_profile
 )
-from utils.helpers import local_css, recomendaciones_itv_detalladas, resumen_proximos_mantenimientos
+from utils.helpers import local_css, recomendaciones_itv_detalladas, resumen_proximos_mantenimientos, ciudades_es
 
 # -----------------------------
 # Configuración de página
