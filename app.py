@@ -1,9 +1,10 @@
 import datetime
-from utils.helpers import local_css, recomendaciones_itv
-from services.api import get_makes, get_models
+import streamlit as st
 from config import APP_TITLE, APP_ICON
+from services.api import get_makes, get_models, get_car_image
+from utils.helpers import local_css, recomendaciones_itv_coste
 
-# Config
+# Configuración
 st.set_page_config(page_title=APP_TITLE, page_icon=APP_ICON, layout="centered")
 local_css("styles/theme.css")
 
@@ -28,14 +29,25 @@ combustible = st.selectbox("Combustible", ["Gasolina", "Diésel", "Híbrido", "E
 if st.button("🔍 Buscar información"):
     if marca and modelo:
         st.success(f"Has seleccionado **{marca} {modelo}**")
-        
-        edad = datetime.date.today().year - anio
-        checklist = recomendaciones_itv(edad, km, combustible)
 
-        if checklist:
+        # Imagen del coche
+        img_url = get_car_image(marca, modelo)
+        if img_url:
+            st.image(img_url, caption=f"{marca} {modelo}", use_column_width=True)
+        else:
+            st.info("No se encontró imagen para este modelo.")
+
+        # Checklist con coste
+        edad = datetime.date.today().year - anio
+        recomendaciones = recomendaciones_itv_coste(edad, km, combustible)
+
+        if recomendaciones:
             st.subheader("✅ Recomendaciones antes de la ITV")
-            for item in checklist:
-                st.checkbox(item, value=False)
+            total = 0
+            for tarea, motivo, coste in recomendaciones:
+                st.checkbox(f"{tarea} — {motivo} (≈ {coste} €)", value=False)
+                total += coste
+            st.markdown(f"**💰 Coste estimado total:** ≈ {total} €")
         else:
             st.info("No hay recomendaciones específicas para este vehículo.")
     else:
