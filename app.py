@@ -149,8 +149,14 @@ def render_user_panel():
     if st.button("Cerrar sesión"):
         sign_out()
         # Limpiar sesión local completamente
-        for key in st.session_state.keys():
-            st.session_state[key] = None
+     keys_to_reset = [
+    "user", "data_loaded", "historial", "historial_rutas",
+    "checklist", "talleres", "ultima_marca", "ultima_modelo",
+    "ultimo_anio", "ultimo_km", "ultimo_combustible", "ruta_datos"
+]
+for k in keys_to_reset:
+    st.session_state[k] = None
+st.experimental_rerun()
         st.experimental_rerun()
 # -----------------------------
 # Panel de usuario editable
@@ -317,7 +323,7 @@ if st.session_state.get("show_user_panel"):
         except Exception as e:
             st.warning(f"No se pudo renderizar el mapa: {e}")
 
-    # -----------------------------
+ # -----------------------------
 # Histórico de rutas
 # -----------------------------
 st.markdown("---")
@@ -338,17 +344,17 @@ if st.session_state.historial_rutas:
 else:
     st.info("Aún no has guardado rutas en esta sesión.")
 
-# Botón para borrar el histórico de rutas de la sesión actual
+# Botón para borrar historial de rutas de la sesión
 if st.button("🗑 Limpiar historial de la sesión actual"):
     st.session_state.historial_rutas = []
     st.session_state.ruta_datos = None
     st.success("Historial de rutas de la sesión actual borrado.")
     st.caption("Esto no afecta al historial guardado permanentemente en tu cuenta.")
-
 # -----------------------------
 # Flujo principal
 # -----------------------------
 if not st.session_state.user:
     render_login_form()
 else:
-    render_main_app()
+    render_user_panel()      # 👈 panel de usuario
+    render_main_app()        # 👈 resto de la app
