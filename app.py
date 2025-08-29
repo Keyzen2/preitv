@@ -2,7 +2,7 @@ import datetime
 import streamlit as st
 from config import APP_TITLE, APP_ICON
 from services.api import get_makes, get_models, search_workshops
-from utils.helpers import local_css, recomendaciones_itv_detalladas, resumen_proximos_mantenimientos
+from utils.helpers import local_css, recomendaciones_itv_detalladas, resumen_proximos_mantenimientos, ciudades_es
 
 # Configuración de página y CSS responsive
 st.set_page_config(page_title=APP_TITLE, page_icon=APP_ICON, layout="centered")
@@ -138,12 +138,10 @@ if st.session_state.checklist:
             st.markdown(f"**{iconos[cat]} {cat}**")
             for tarea in grupos[cat]:
                 color = "green"
-                # Reglas de urgencia simples
                 if any(word in tarea.lower() for word in ["correa", "pastillas", "aceite"]) and km >= 60000:
                     color = "red"
                 elif any(word in tarea.lower() for word in ["correa", "pastillas", "aceite"]) and km >= 50000:
                     color = "orange"
-
                 st.markdown(f"<span style='color:{color}'>• {tarea}</span>", unsafe_allow_html=True)
 
 # ------------------------------------------------------------
@@ -151,8 +149,6 @@ if st.session_state.checklist:
 # ------------------------------------------------------------
 st.markdown("---")
 st.subheader("🔧 Talleres en tu ciudad")
-
-from utils.helpers import ciudades_es  # lista de todas las ciudades de España
 
 # Sugerencias rápidas + campo libre
 colc1, colc2 = st.columns([1, 1])
