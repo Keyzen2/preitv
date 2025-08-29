@@ -1,5 +1,4 @@
 import datetime
-import time
 import requests
 import streamlit as st
 import folium
@@ -8,8 +7,12 @@ from streamlit_folium import st_folium
 from config import APP_TITLE, APP_ICON
 from services.api import get_makes, get_models, search_workshops
 from services.routes import get_route, calcular_coste
-from services.supabase_client import sign_in, sign_up, sign_out, save_search, save_route, load_user_data
-from utils.helpers import local_css, recomendaciones_itv_detalladas, resumen_proximos_mantenimientos, ciudades_es
+from services.supabase_client import (
+    sign_in, sign_up, sign_out, save_search, save_route, load_user_data, supabase
+)
+from utils.helpers import (
+    local_css, recomendaciones_itv_detalladas, resumen_proximos_mantenimientos, ciudades_es
+)
 
 # -----------------------------
 # Configuración de página y CSS
@@ -27,11 +30,6 @@ defaults = {
     "historial_rutas": [],
     "checklist": [],
     "talleres": [],
-    "ultima_marca": None,
-    "ultima_modelo": None,
-    "ultimo_anio": None,
-    "ultimo_km": None,
-    "ultimo_combustible": None,
     "ruta_datos": None
 }
 for k, v in defaults.items():
@@ -55,6 +53,9 @@ def geocode_city(city_name: str):
         st.error(f"Error geocodificando {city_name}: {e}")
     return None
 
+# -----------------------------
+# Login / Registro
+# -----------------------------
 def render_login_form():
     st.subheader("🔐 Iniciar sesión o registrarse")
     tab_login, tab_signup = st.tabs(["Iniciar sesión", "Registrarse"])
@@ -66,31 +67,59 @@ def render_login_form():
             if not email or not password:
                 st.error("Introduce email y contraseña")
             else:
-                try:
-                    res = sign_in(email, password)
-                    if getattr(res, "user", None):
-                        st.session_state.user = res.user
-                        st.success("Sesión iniciada")
-                    else:
-                        st.error("Credenciales incorrectas")
-                except Exception as e:
-                    st.error(f"Error al iniciar sesión: {e}")
+                res = sign_in(email, password)
+                if getattr(res, "user", None):
+                    st.session_state.user = res.user
+                    st.success("Sesión iniciada")
+                    st.experimental_rerun()
+                else:
+                    st.error("Credenciales incorrectas")
 
     with tab_signup:
         email_s = st.text_input("Email nuevo", key="signup_email")
         password_s = st.text_input("Contraseña nueva", type="password", key="signup_password")
         if st.button("Crear cuenta"):
             if not email_s or not password_s:
-                st.error("Introduce email y contraseña para registrarte")
+                st.error("Introduce email y contraseña")
             else:
-                try:
-                    res = sign_up(email_s, password_s)
-                    if getattr(res, "user", None):
-                        st.success("Cuenta creada. Revisa tu email para verificar.")
-                    else:
-                        st.error("No se pudo crear la cuenta")
-                except Exception as e:
-                    st.error(f"Error al registrarse: {e}")
+                res = sign_up(email_s, password_s)
+                if getattr(res, "user", None):
+                    st.success("Cuenta creada. Revisa tu email para verificar.")
+                else:
+                    st.error("No se pudo crear la cuenta")
+
+# -----------------------------
+# Panel de usuario
+# -----------------------------
+def render_user_panel():
+    user_email = getattr(st.session_state.user, "email", None) or st.session_state.user.get("email")
+    user_name = getattr(st.session_state.user, "user_metadata", {}).get("name", "")
+
+    st.subheader(f"👋 Hola, {user_name or user_email}")
+
+    with st.expander("⚙️ Configuración de cuenta", expanded=False):
+        nuevo_nombre = st.text_input("Cambiar nombre", value=user_name)
+        if st.button("Actualizar nombre"):
+            if nuevo_nombre:
+                supabase.auth.update_user({"data": {"name": nuevo_nombre}})
+                st.success("Nombre actualizado correctamente")
+                st.session_state.user.user_metadata["name"] = nuevo_nombre
+            else:
+                st.warning("Introduce un nombre válido")
+
+        nueva_pass = st.text_input("Nueva contraseña", type="password")
+        if st.button("Actualizar contraseña"):
+            if nueva_pass:
+                supabase.auth.update_user({"password": nueva_pass})
+                st.success("Contraseña actualizada correctamente")
+            else:
+                st.warning("Introduce una contraseña válida")
+
+    if st.button("Cerrar sesión"):
+        sign_out()
+        for k in defaults.keys():
+            st.session_state[k] = defaults[k]
+        st.experimental_rerun()
 
 # -----------------------------
 # Render Aplicación Principal
