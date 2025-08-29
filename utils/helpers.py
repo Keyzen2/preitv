@@ -1,11 +1,20 @@
 import streamlit as st
 
 def local_css(file_name):
+    """Carga el CSS local desde el archivo indicado."""
     with open(file_name) as f:
         st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
 
+
 def recomendaciones_itv(edad, km, combustible):
+    """
+    Devuelve una lista de recomendaciones antes de la ITV,
+    con breve explicación de cada tarea en formato:
+    'Tarea — Motivo'
+    """
     recomendaciones = []
+
+    # Kilometraje
     if km >= 5000:
         recomendaciones.append("Revisar nivel de aceite, fugas y neumáticos — Evita desgaste prematuro")
     if km >= 10000:
@@ -20,14 +29,19 @@ def recomendaciones_itv(edad, km, combustible):
         recomendaciones.append("Cambio de filtro de aire y combustible, revisar correa distribución — Previene averías graves")
     if km >= 100000:
         recomendaciones.append("Sustituir correa distribución y revisar refrigeración — Evita rotura de motor")
+
+    # Edad del vehículo
     if edad >= 4:
         recomendaciones.append("Comprobar luces, señalización y suspensión — Requisitos ITV")
     if edad >= 8:
         recomendaciones.append("Inspección completa de frenos, dirección y chasis — Previene fallos estructurales")
+
+    # Tipo de combustible
     if combustible.lower() == "diésel":
         recomendaciones.append("Comprobar filtro de partículas (DPF) e inyección — Evita pérdida de potencia")
     elif combustible.lower() == "híbrido":
         recomendaciones.append("Revisar batería híbrida y sistema eléctrico — Mantiene autonomía")
     elif combustible.lower() == "eléctrico":
         recomendaciones.append("Comprobar batería de tracción y sistema de carga — Asegura rendimiento")
+
     return recomendaciones
