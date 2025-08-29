@@ -1,86 +1,25 @@
-import os
 import streamlit as st
-import requests
-import json
-from datetime import date
-from pathlib import Path
-from urllib.parse import quote_plus
-from PIL import Image
+from services.api import get_makes, get_models
+from config import APP_TITLE, APP_ICON
+from utils.helpers import local_css
 
 # --- CONFIG ---
-st.set_page_config(
-    page_title="Buscador de Vehículos",
-    page_icon="🚗",
-    layout="centered"
-)
-
-# --- ESTILOS CSS ---
-st.markdown(
-    """
-    <style>
-    body {
-        background-color: #f9fafb;
-        font-family: 'Segoe UI', sans-serif;
-    }
-    .stSelectbox, .stTextInput, .stButton button {
-        border-radius: 12px;
-    }
-    .stButton button {
-        background-color: #007bff;
-        color: white;
-        font-weight: bold;
-        border: none;
-        padding: 0.6em 1.2em;
-    }
-    .stButton button:hover {
-        background-color: #0056b3;
-    }
-    </style>
-    """,
-    unsafe_allow_html=True
-)
-
-# --- FUNCIONES ---
-@st.cache_data
-def get_makes():
-    """Obtiene todas las marcas de la API y filtra solo Europa."""
-    url = "https://vpic.nhtsa.dot.gov/api/vehicles/GetAllMakes?format=json"
-    res = requests.get(url)
-    data = res.json()
-    makes = [m["Make_Name"] for m in data["Results"]]
-
-    # Filtrado marcas Europa (personalizable)
-    european_makes = [
-        "Audi", "BMW", "Citroen", "Dacia", "Fiat", "Ford",
-        "Mercedes-Benz", "Opel", "Peugeot", "Renault",
-        "SEAT", "Skoda", "Volkswagen", "Volvo", "Alfa Romeo",
-        "Mini", "Porsche", "Jaguar", "Land Rover"
-    ]
-
-    # Filtrar case-insensitive
-    makes_eu = sorted([m for m in makes if m.title() in european_makes])
-    return makes_eu
-
-@st.cache_data
-def get_models(make: str):
-    """Devuelve modelos de una marca concreta."""
-    url = f"https://vpic.nhtsa.dot.gov/api/vehicles/GetModelsForMake/{quote_plus(make)}?format=json"
-    res = requests.get(url)
-    data = res.json()
-    models = [m["Model_Name"] for m in data["Results"]]
-    return sorted(models)
+st.set_page_config(page_title=APP_TITLE, page_icon=APP_ICON, layout="centered")
+local_css("styles/theme.css")
 
 # --- UI ---
 st.title("🚗 Buscador de Vehículos (Versión PRO)")
 st.write("Selecciona una marca y modelo disponible en Europa.")
 
 # Selección Marca
-makes = get_makes()
-marca = st.selectbox("Marca", options=makes, index=0)
+with st.spinner("Cargando marcas..."):
+    makes = get_makes()
+
+marca = st.selectbox("Marca", options=makes, index=None)
 
 # Selección Modelo (dinámico)
 modelos = get_models(marca) if marca else []
-modelo = st.selectbox("Modelo", options=modelos, index=0 if modelos else None)
+modelo = st.selectbox("Modelo", options=modelos, index=None)
 
 # Botón de búsqueda
 if st.button("🔍 Buscar información"):
