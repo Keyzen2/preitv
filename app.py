@@ -216,9 +216,11 @@ if st.session_state.talleres:
         lat = t.get("lat")
         lon = t.get("lon")
         oh = t.get("opening_hours")
+
         linea_titulo = f"**{i}. {nombre}**"
         if web:
-        linea_titulo = f"[{linea_titulo}]({web})"
+            linea_titulo = f"[{linea_titulo}]({web})"  # 👈 sangría dentro del if
+
         st.markdown(linea_titulo)
         if addr:
             st.markdown(f"- **Dirección:** {addr}")
