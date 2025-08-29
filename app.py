@@ -109,23 +109,49 @@ def render_main_app():
         st.session_state.data_loaded = True
 
     # -----------------------------
-# 👤 Saludo y panel de usuario
+# Panel de usuario y sesión
 # -----------------------------
-col_user1, col_user2 = st.columns([3, 1])
-with col_user1:
-    if st.button(f"👋 Hola, {st.session_state.user.email}"):
-        st.session_state.show_user_panel = not st.session_state.get("show_user_panel", False)
-with col_user2:
+def render_user_panel():
+    """Muestra el panel de usuario con opciones de cambio de nombre y contraseña."""
+    user_email = getattr(st.session_state.user, "email", None) or st.session_state.user.get("email")
+    user_name = getattr(st.session_state.user, "user_metadata", {}).get("name", "")
+
+    st.subheader(f"👋 Hola, {user_name or user_email}")
+
+    with st.expander("⚙️ Configuración de cuenta", expanded=True):
+        # Cambiar nombre
+        nuevo_nombre = st.text_input("Cambiar nombre", value=user_name)
+        if st.button("Actualizar nombre"):
+            if nuevo_nombre:
+                try:
+                    supabase.auth.update_user({"data": {"name": nuevo_nombre}})
+                    st.success("Nombre actualizado correctamente")
+                    # Actualizar sesión local
+                    st.session_state.user.user_metadata["name"] = nuevo_nombre
+                except Exception as e:
+                    st.error(f"Error al actualizar nombre: {e}")
+            else:
+                st.warning("Introduce un nombre válido")
+
+        # Cambiar contraseña
+        nueva_pass = st.text_input("Nueva contraseña", type="password")
+        if st.button("Actualizar contraseña"):
+            if nueva_pass:
+                try:
+                    supabase.auth.update_user({"password": nueva_pass})
+                    st.success("Contraseña actualizada correctamente")
+                except Exception as e:
+                    st.error(f"Error al actualizar contraseña: {e}")
+            else:
+                st.warning("Introduce una contraseña válida")
+
+    # Cerrar sesión
     if st.button("Cerrar sesión"):
         sign_out()
-        # Resetear session_state a valores por defecto
-        defaults = ["historial", "historial_rutas", "checklist", "user", 
-                    "talleres", "ultima_marca", "ultima_modelo", "ultimo_anio", 
-                    "ultimo_km", "ultimo_combustible", "ruta_datos", "data_loaded", "show_user_panel"]
-        for key in defaults:
-            st.session_state[key] = None if key == "user" else []
+        # Limpiar sesión local completamente
+        for key in st.session_state.keys():
+            st.session_state[key] = None
         st.experimental_rerun()
-
 # -----------------------------
 # Panel de usuario editable
 # -----------------------------
