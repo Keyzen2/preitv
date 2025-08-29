@@ -11,7 +11,6 @@ def recomendaciones_itv_detalladas(edad, km, combustible):
     basadas en kilometraje y antigüedad, usando buenas prácticas comunes
     publicadas en medios especializados (Autopista, Feu Vert, Autofácil...).
     """
-
     recomendaciones = []
 
     # 5.000 km
@@ -76,4 +75,5 @@ def recomendaciones_itv_detalladas(edad, km, combustible):
         recomendaciones.append("Comprobar batería de tracción y sistema de carga — Asegura rendimiento y autonomía")
 
     return recomendaciones
+
 
