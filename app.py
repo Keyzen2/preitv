@@ -8,7 +8,11 @@ from utils.helpers import local_css, recomendaciones_itv
 st.set_page_config(page_title=APP_TITLE, page_icon=APP_ICON, layout="centered")
 local_css("styles/theme.css")
 
-# UI
+# Inicializar histórico en sesión
+if "historial" not in st.session_state:
+    st.session_state.historial = []
+
+# UI principal
 st.title("🚗 Buscador de Vehículos (Versión PRO)")
 st.write("Selecciona una marca y modelo disponible en Europa.")
 
@@ -25,26 +29,48 @@ anio = st.number_input("Año de matriculación", min_value=1980, max_value=datet
 km = st.number_input("Kilometraje", min_value=0, step=1000)
 combustible = st.selectbox("Combustible", ["Gasolina", "Diésel", "Híbrido", "Eléctrico"])
 
-# Botón
-if st.button("🔍 Buscar información"):
-    if marca and modelo:
-        st.success(f"Has seleccionado **{marca} {modelo}**")
+col1, col2 = st.columns(2)
 
-        # Imagen genérica de la marca desde Wikipedia
-        img_url = get_brand_image(marca)
-        if img_url:
-            st.image(img_url, caption=f"{marca}", use_column_width=True)
+with col1:
+    if st.button("🔍 Buscar información"):
+        if marca and modelo:
+            st.success(f"Has seleccionado **{marca} {modelo}**")
+
+            # Imagen genérica de la marca
+            img_url = get_brand_image(marca)
+            if img_url:
+                st.image(img_url, caption=f"{marca}", use_column_width=True)
+            else:
+                st.info("No se encontró imagen para esta marca.")
+
+            # Generar checklist
+            edad = datetime.date.today().year - anio
+            st.session_state.checklist = recomendaciones_itv(edad, km, combustible)
+
+            # Guardar en histórico
+            registro = {
+                "marca": marca,
+                "modelo": modelo,
+                "anio": anio,
+                "km": km,
+                "combustible": combustible
+            }
+            if registro not in st.session_state.historial:
+                st.session_state.historial.append(registro)
         else:
-            st.info("No se encontró imagen para esta marca.")
+            st.warning("Selecciona una marca y modelo válido.")
 
-        # Guardar checklist en sesión
-        edad = datetime.date.today().year - anio
-        st.session_state.checklist = recomendaciones_itv(edad, km, combustible)
-    else:
-        st.warning("Selecciona una marca y modelo válido.")
+with col2:
+    if st.button("📜 Coches consultados"):
+        if st.session_state.historial:
+            st.subheader("Histórico de coches consultados en esta sesión")
+            for item in st.session_state.historial:
+                st.markdown(f"**{item['marca']} {item['modelo']}** — {item['anio']} — {item['km']} km — {item['combustible']}")
+        else:
+            st.info("Aún no has consultado ningún coche.")
 
-# Mostrar checklist persistente
+# Mostrar checklist si existe
 if "checklist" in st.session_state and st.session_state.checklist:
     st.subheader("✅ Recomendaciones antes de la ITV")
-    for i, tarea in enumerate(st.session_state.checklist):
-        st.checkbox(tarea, key=f"chk_{i}")
+    for tarea in st.session_state.checklist:
+        st.write(f"• {tarea}")
