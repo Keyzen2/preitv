@@ -218,7 +218,7 @@ if st.session_state.talleres:
         oh = t.get("opening_hours")
         linea_titulo = f"**{i}. {nombre}**"
         if web:
-            linea_titulo = f"[{linea_titulo}]({web})"
+        linea_titulo = f"[{linea_titulo}]({web})"
         st.markdown(linea_titulo)
         if addr:
             st.markdown(f"- **Dirección:** {addr}")
@@ -235,6 +235,15 @@ if st.session_state.talleres:
 # 🗺️ Planificador de ruta y coste de combustible
 # -----------------------------
 st.subheader("🗺️ Planificador de ruta y coste de combustible")
+
+# Mapeo selección de combustible -> etiqueta API MITECO
+TIPO_COMBUSTIBLE_MAP = {
+    "Gasolina": "Gasolina 95 E5",
+    "Diésel": "Gasoleo A",
+    "Híbrido": "Gasolina 95 E5",  # podrías diferenciar híbrido diésel si lo deseas
+    "Eléctrico": None
+}
+tipo_comb_api = TIPO_COMBUSTIBLE_MAP.get(combustible)
 
 col_r1, col_r2 = st.columns(2)
 with col_r1:
@@ -276,34 +285,34 @@ if calcular_ruta:
             folium.Marker([lat_d, lon_d], tooltip=f"Destino: {destino_nombre}").add_to(m)
             folium.PolyLine([(lat, lon) for lon, lat in coords_linea], color="blue", weight=4).add_to(m)
 
-            # ⛽ Gasolineras más baratas en la ruta
-            st.subheader("⛽ Gasolineras más baratas en la ruta")
-            estaciones = get_fuel_prices()
-            baratas = filter_cheapest_on_route(
-                estaciones,
-                coords_linea,
-                fuel_type="Gasolina 95 E5",  # podrías enlazarlo con el combustible del vehículo
-                max_distance_km=5,
-                limit=5
-            )
-
-            if baratas:
-                for g in baratas:
-                    folium.Marker(
-                        [g["lat"], g["lon"]],
-                        tooltip=f"{g['rotulo']} - {g['precio']} €/L",
-                        icon=folium.Icon(color="green", icon="tint", prefix="fa")
-                    ).add_to(m)
-                    st.markdown(
-                        f"**{g['rotulo']}** — {g['precio']} €/L — {g['direccion']} ({g['municipio']})"
-                    )
+            # Gasolineras en ruta según combustible elegido
+            if tipo_comb_api:
+                st.subheader(f"⛽ Gasolineras más baratas ({tipo_comb_api}) en la ruta")
+                estaciones = get_fuel_prices()
+                baratas = filter_cheapest_on_route(
+                    estaciones,
+                    coords_linea,
+                    fuel_type=tipo_comb_api,
+                    max_distance_km=5,
+                    limit=5
+                )
+                if baratas:
+                    for g in baratas:
+                        folium.Marker(
+                            [g["lat"], g["lon"]],
+                            tooltip=f"{g['rotulo']} - {g['precio']} €/L",
+                            icon=folium.Icon(color="green", icon="tint", prefix="fa")
+                        ).add_to(m)
+                        st.markdown(
+                            f"**{g['rotulo']}** — {g['precio']} €/L — {g['direccion']} ({g['municipio']})"
+                        )
+                else:
+                    st.info("No se encontraron gasolineras cercanas a la ruta para el combustible seleccionado.")
             else:
-                st.info("No se encontraron gasolineras cercanas a la ruta para el combustible seleccionado.")
+                st.info("No se buscan gasolineras para vehículos eléctricos en la API MITECO.")
 
             # Mostrar mapa final
             st_folium(m, width=700, height=500)
 
         else:
             st.error("No se pudo calcular la ruta.")
-
-
