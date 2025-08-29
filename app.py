@@ -1,54 +1,82 @@
 import datetime
 import streamlit as st
 from config import APP_TITLE, APP_ICON
-from services.api import get_makes, get_models, get_brand_image
-from utils.helpers import local_css, recomendaciones_itv_detalladas
+from services.api import get_makes, get_models
+from utils.helpers import local_css, recomendaciones_itv_detalladas, resumen_proximos_mantenimientos
 
-# Configuración de página
+# Configuración de página y CSS responsive
 st.set_page_config(page_title=APP_TITLE, page_icon=APP_ICON, layout="centered")
 local_css("styles/theme.css")
+st.markdown("""
+<style>
+@media (max-width: 768px) {
+    .block-container {
+        padding-left: 0.5rem;
+        padding-right: 0.5rem;
+    }
+    h1, h2, h3, h4 {
+        font-size: 1.1rem;
+    }
+}
+</style>
+""", unsafe_allow_html=True)
 
 # Inicializar session_state
-if "historial" not in st.session_state:
-    st.session_state.historial = []
-if "checklist" not in st.session_state:
-    st.session_state.checklist = []
+for key in ["historial", "checklist", "ultima_marca", "ultima_modelo", "ultimo_anio", "ultimo_km", "ultimo_combustible"]:
+    if key not in st.session_state:
+        st.session_state[key] = [] if key in ["historial", "checklist"] else None
 
-# Título y explicación
+# Título
 st.title("🚗 Buscador de Vehículos (Versión PRO)")
-st.write("Selecciona una marca y modelo disponible en Europa para ver recomendaciones agrupadas por tipo.")
+st.write("Selecciona una marca y modelo de Europa para ver recomendaciones y próximos mantenimientos.")
 
 # Marcas y modelos
 with st.spinner("Cargando marcas..."):
     makes = get_makes()
 
-marca = st.selectbox("Marca", options=makes, index=None, placeholder="Elige una marca")
+marca = st.selectbox(
+    "Marca", options=makes,
+    index=makes.index(st.session_state.ultima_marca) if st.session_state.ultima_marca in makes else None,
+    placeholder="Elige una marca"
+)
 modelos = get_models(marca) if marca else []
-modelo = st.selectbox("Modelo", options=modelos, index=None, placeholder="Elige un modelo")
+modelo = st.selectbox(
+    "Modelo", options=modelos,
+    index=modelos.index(st.session_state.ultima_modelo) if st.session_state.ultima_modelo in modelos else None,
+    placeholder="Elige un modelo"
+)
 
-# Datos del vehículo
-anio = st.number_input("Año de matriculación", min_value=1980, max_value=datetime.date.today().year)
-km = st.number_input("Kilometraje", min_value=0, step=1000)
-combustible = st.selectbox("Combustible", ["Gasolina", "Diésel", "Híbrido", "Eléctrico"])
+anio = st.number_input("Año de matriculación", min_value=1900, max_value=datetime.date.today().year, value=st.session_state.ultimo_anio or 2000)
+km = st.number_input("Kilometraje", min_value=0, step=1000, value=st.session_state.ultimo_km or 0)
+combustible = st.selectbox(
+    "Combustible", ["Gasolina", "Diésel", "Híbrido", "Eléctrico"],
+    index=["Gasolina", "Diésel", "Híbrido", "Eléctrico"].index(st.session_state.ultimo_combustible or "Gasolina")
+)
 
 # Botones principales
-col1, col2, col3 = st.columns(3)
+col1, col2, col3 = st.columns([1, 1, 1])
 
 with col1:
     if st.button("🔍 Buscar información"):
         if marca and modelo:
+            # Guardar última búsqueda
+            st.session_state.ultima_marca = marca
+            st.session_state.ultima_modelo = modelo
+            st.session_state.ultimo_anio = anio
+            st.session_state.ultimo_km = km
+            st.session_state.ultimo_combustible = combustible
+
             st.success(f"Has seleccionado **{marca} {modelo}**")
 
-            # Imagen de marca
-            img_url = get_brand_image(marca)
-            if img_url:
-                st.image(img_url, caption=f"{marca}", use_column_width=True)
-            else:
-                st.info("No se encontró imagen para esta marca.")
+            # Resumen de próximos mantenimientos
+            resumen = resumen_proximos_mantenimientos(km)
+            st.info(f"📅 {resumen}")
 
-            # Guardar checklist y en histórico
+            # Generar checklist
             edad = datetime.date.today().year - anio
             st.session_state.checklist = recomendaciones_itv_detalladas(edad, km, combustible)
+
+            # Guardar en histórico
             registro = {
                 "marca": marca,
                 "modelo": modelo,
@@ -76,7 +104,7 @@ with col3:
         st.session_state.checklist = []
         st.success("Histórico y checklist borrados.")
 
-# Mostrar checklist agrupado por categorías
+# Mostrar checklist agrupado con colores
 if st.session_state.checklist:
     st.subheader("✅ Recomendaciones antes de la ITV")
 
@@ -87,15 +115,14 @@ if st.session_state.checklist:
         "Otros": "🔧"
     }
 
-    grupos = {}
     for tarea, categoria in st.session_state.checklist:
-        grupos.setdefault(categoria, []).append(f"{iconos.get(categoria, '')} {tarea}")
+        icono = iconos.get(categoria, "")
+        color = "green"
+        if any(word in tarea.lower() for word in ["correa", "pastillas", "aceite"]) and km >= 60000:
+            color = "red"
+        elif any(word in tarea.lower() for word in ["correa", "pastillas", "aceite"]) and km >= 50000:
+            color = "orange"
 
-    # Mostrar en orden predefinido
-    orden_categorias = ["Kilometraje", "Edad del vehículo", "Combustible específico", "Otros"]
-    for cat in orden_categorias:
-        if cat in grupos:
-            st.markdown(f"**{cat}**")
-            for item in grupos[cat]:
-                st.write(f"• {item}")
+        st.markdown(f"<span style='color:{color}'>{icono} {tarea}</span>", unsafe_allow_html=True)
+
 
