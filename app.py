@@ -216,7 +216,7 @@ if st.session_state.talleres:
         lat = t.get("lat")
         lon = t.get("lon")
         oh = t.get("opening_hours")
-                linea_titulo = f"**{i}. {nombre}**"
+        linea_titulo = f"**{i}. {nombre}**"
         if web:
             linea_titulo = f"[{linea_titulo}]({web})"
         st.markdown(linea_titulo)
