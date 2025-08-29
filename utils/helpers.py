@@ -1,45 +1,31 @@
-import streamlit as st
-
-def local_css(file_name):
-    """Carga CSS local."""
-    with open(file_name) as f:
-        st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
-
-
-def recomendaciones_itv_coste(edad, km, combustible):
-    """
-    Devuelve lista de tuplas (tarea, motivo, coste_estimado)
-    """
+def recomendaciones_itv(edad, km, combustible):
     recomendaciones = []
 
-    def add(tarea, motivo, coste):
-        recomendaciones.append((tarea, motivo, coste))
-
     if km >= 5000:
-        add("Revisar nivel de aceite, fugas y neumáticos", "Evita desgaste prematuro", 20)
+        recomendaciones.append("Revisar nivel de aceite, fugas y neumáticos — Evita desgaste prematuro")
     if km >= 10000:
-        add("Alineación, balanceo y rotación de neumáticos", "Mantiene estabilidad", 40)
+        recomendaciones.append("Alineación, balanceo y rotación de neumáticos — Mantiene estabilidad")
     if km >= 15000:
-        add("Cambio de aceite y filtro, revisión frenos y batería", "Lubricación y frenado óptimos", 120)
+        recomendaciones.append("Cambio de aceite y filtro, revisión frenos y batería — Lubricación y frenado óptimos")
     if km >= 30000:
-        add("Cambio de pastillas de freno, revisión discos", "Mejora frenado", 150)
+        recomendaciones.append("Cambio de pastillas de freno, revisión discos — Mejora frenado")
     if km >= 40000 and combustible.lower() == "gasolina":
-        add("Sustituir bujías y revisar encendido", "Optimiza combustión", 80)
+        recomendaciones.append("Sustituir bujías y revisar encendido — Optimiza combustión")
     if km >= 60000:
-        add("Cambio de filtro de aire y combustible, revisar correa distribución", "Previene averías graves", 250)
+        recomendaciones.append("Cambio de filtro de aire y combustible, revisar correa distribución — Previene averías graves")
     if km >= 100000:
-        add("Sustituir correa distribución y revisar refrigeración", "Evita rotura de motor", 500)
+        recomendaciones.append("Sustituir correa distribución y revisar refrigeración — Evita rotura de motor")
 
     if edad >= 4:
-        add("Comprobar luces, señalización y suspensión", "Requisitos ITV", 30)
+        recomendaciones.append("Comprobar luces, señalización y suspensión — Requisitos ITV")
     if edad >= 8:
-        add("Inspección completa de frenos, dirección y chasis", "Previene fallos estructurales", 200)
+        recomendaciones.append("Inspección completa de frenos, dirección y chasis — Previene fallos estructurales")
 
     if combustible.lower() == "diésel":
-        add("Comprobar filtro de partículas (DPF) e inyección", "Evita pérdida de potencia", 180)
+        recomendaciones.append("Comprobar filtro de partículas (DPF) e inyección — Evita pérdida de potencia")
     elif combustible.lower() == "híbrido":
-        add("Revisar batería híbrida y sistema eléctrico", "Mantiene autonomía", 300)
+        recomendaciones.append("Revisar batería híbrida y sistema eléctrico — Mantiene autonomía")
     elif combustible.lower() == "eléctrico":
-        add("Comprobar batería de tracción y sistema de carga", "Asegura rendimiento", 150)
+        recomendaciones.append("Comprobar batería de tracción y sistema de carga — Asegura rendimiento")
 
     return recomendaciones
