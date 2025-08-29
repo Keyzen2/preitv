@@ -2,11 +2,8 @@ import requests
 import logging
 from urllib.parse import quote_plus
 import streamlit as st
+import unicodedata
 from config import EUROPEAN_MAKES
-
-# =========================
-# VEHÍCULOS
-# =========================
 
 @st.cache_data(ttl=86400)
 def get_makes():
@@ -41,61 +38,69 @@ def get_models(make: str):
     modelos = sorted([m["Model_Name"].strip() for m in data.get("Results", []) if "Model_Name" in m])
     return modelos
 
-# =========================
-# TALLERES MECÁNICOS
-# =========================
+def normalize_city(city: str):
+    """Normaliza el nombre de la ciudad quitando acentos y espacios extras."""
+    city = city.strip()
+    city = unicodedata.normalize('NFKD', city).encode('ASCII', 'ignore').decode('utf-8')
+    return city
 
 @st.cache_data(ttl=3600)
 def search_workshops(city: str, limit: int = 5):
-    """
-    Busca talleres mecánicos (amenity=car_repair) en una ciudad de España usando Overpass API.
-    Devuelve hasta 'limit' resultados.
-    """
-    city = city.strip()
+    """Busca talleres mecánicos (amenity=car_repair) en España usando Overpass API."""
     if not city:
         return []
 
-    # 1️⃣ Obtener lat/lon de la ciudad con Nominatim
-    try:
-        geo_url = f"https://nominatim.openstreetmap.org/search?format=json&q={quote_plus(city)}, España"
-        geo_res = requests.get(geo_url, headers={"User-Agent": "Mozilla/5.0"}, timeout=10)
-        geo_res.raise_for_status()
-        geo_data = geo_res.json()
-        if not geo_data:
-            return []
-        lat, lon = geo_data[0]["lat"], geo_data[0]["lon"]
-    except requests.RequestException as e:
-        logging.error(f"Error geolocalizando ciudad {city}: {e}")
-        return []
+    city_norm = normalize_city(city)
 
-    # 2️⃣ Query Overpass con radio alrededor de coordenadas
-    overpass_url = "https://overpass-api.de/api/interpreter"
-    query = f"""
+    overpass_endpoints = [
+        "https://overpass-api.de/api/interpreter",
+        "https://lz4.overpass-api.de/api/interpreter",
+        "https://overpass.kumi.systems/api/interpreter"
+    ]
+
+    query_area = f"""
     [out:json][timeout:25];
-    (
-      node["amenity"="car_repair"](around:10000,{lat},{lon});
-      way["amenity"="car_repair"](around:10000,{lat},{lon});
-      relation["amenity"="car_repair"](around:10000,{lat},{lon});
-    );
+    area
+      ["boundary"="administrative"]
+      ["name"="{city_norm}"]
+      ["ISO3166-1"="ES"]
+      ["admin_level"~"^(8|9|10)$"];
+    (node["amenity"="car_repair"](area);
+     way["amenity"="car_repair"](area);
+     relation["amenity"="car_repair"](area););
     out center tags;
     """
 
-    try:
-        res = requests.post(overpass_url, data={"data": query}, timeout=25)
-        res.raise_for_status()
-        data = res.json()
-    except requests.RequestException as e:
-        logging.error(f"Error Overpass para {city}: {e}")
-        return []
-    except ValueError:
-        logging.error("Respuesta Overpass no es JSON válida.")
-        return []
+    query_place = f"""
+    [out:json][timeout:25];
+    node["amenity"="car_repair"]["place"="city"]["name"="{city_norm}"];
+    out center tags;
+    """
 
-    elements = data.get("elements", [])
+    for endpoint in overpass_endpoints:
+        try:
+            # Intentamos primero por área administrativa
+            res = requests.post(endpoint, data={"data": query_area}, timeout=25)
+            res.raise_for_status()
+            data = res.json()
+            elements = data.get("elements", [])
+            if elements:
+                break  # si encontramos resultados, salimos del loop
+
+            # Si no hay resultados, buscamos por place=city
+            res = requests.post(endpoint, data={"data": query_place}, timeout=25)
+            res.raise_for_status()
+            data = res.json()
+            elements = data.get("elements", [])
+            if elements:
+                break
+        except Exception as e:
+            logging.warning(f"Overpass endpoint {endpoint} falló para {city}: {e}")
+            elements = []
+
     if not elements:
         return []
 
-    # 3️⃣ Extraer datos relevantes
     def extract(el):
         tags = el.get("tags", {}) or {}
         name = tags.get("name")
@@ -103,14 +108,12 @@ def search_workshops(city: str, limit: int = 5):
         website = tags.get("website") or tags.get("contact:website")
         opening_hours = tags.get("opening_hours")
 
-        # Coordenadas
         if el.get("type") == "node":
-            lat_el, lon_el = el.get("lat"), el.get("lon")
+            lat, lon = el.get("lat"), el.get("lon")
         else:
             center = el.get("center") or {}
-            lat_el, lon_el = center.get("lat"), center.get("lon")
+            lat, lon = center.get("lat"), center.get("lon")
 
-        # Dirección
         street = tags.get("addr:street")
         housenumber = tags.get("addr:housenumber")
         postcode = tags.get("addr:postcode")
@@ -118,13 +121,14 @@ def search_workshops(city: str, limit: int = 5):
         address = None
         if street or housenumber or postcode or city_tag:
             parts = []
-            if street: parts.append(street)
-            if housenumber: parts.append(housenumber)
+            if street:
+                parts.append(street)
+            if housenumber:
+                parts.append(housenumber)
             if postcode or city_tag:
                 parts.append(f"{postcode or ''} {city_tag}".strip())
             address = ", ".join(parts)
 
-        # Score heurístico
         score = 0
         if name: score += 3
         if phone: score += 2
@@ -138,15 +142,15 @@ def search_workshops(city: str, limit: int = 5):
             "website": website,
             "opening_hours": opening_hours,
             "address": address,
-            "lat": lat_el,
-            "lon": lon_el,
+            "lat": lat,
+            "lon": lon,
             "score": score
         }
 
     items = [extract(e) for e in elements]
     items = sorted(items, key=lambda x: (-x["score"], (x["name"] or "ZZZZ")))
-
     return items[:limit]
+
 
 
 
