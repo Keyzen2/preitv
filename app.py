@@ -102,8 +102,8 @@ def render_main_app():
         st.session_state.historial = historial
         st.session_state.historial_rutas = historial_rutas
         st.session_state.data_loaded = True
-        except Exception as e:
-        st.error(f"No se pudieron cargar los datos del usuario: {e}")
+         except Exception as e:
+           st.error(f"No se pudieron cargar los datos del usuario: {e}")
 
     # -----------------------------
     # Panel usuario
