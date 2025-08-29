@@ -2,7 +2,7 @@ import requests
 import logging
 from urllib.parse import quote_plus
 import streamlit as st
-from config import EUROPEAN_MAKES
+from config import EUROPEAN_MAKES, UNSPLASH_ACCESS_KEY
 
 @st.cache_data(ttl=86400)
 def get_makes():
@@ -55,3 +55,18 @@ def get_models(make: str):
 
     models = [m["Model_Name"] for m in data["Results"] if "Model_Name" in m]
     return sorted(models)
+
+
+def get_car_image(make, model):
+    """Busca una imagen del coche en Unsplash."""
+    query = f"{make} {model} car"
+    url = f"https://api.unsplash.com/search/photos?query={quote_plus(query)}&per_page=1&client_id={UNSPLASH_ACCESS_KEY}"
+    try:
+        res = requests.get(url, timeout=10)
+        res.raise_for_status()
+        data = res.json()
+        if data.get("results"):
+            return data["results"][0]["urls"]["regular"]
+    except Exception as e:
+        logging.error(f"Error obteniendo imagen de Unsplash: {e}")
+    return None
