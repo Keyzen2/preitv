@@ -60,5 +60,27 @@ def save_route(user_id: Optional[str], origin: str, destination: str,
     except Exception as e:
         st.error(f"Error guardando ruta: {e}")
 
+# -----------------------------
+# Carga de históricos de usuario
+# -----------------------------
+def load_user_data(user_id: str):
+    """
+    Carga el historial de vehículos y rutas del usuario desde Supabase.
+    Devuelve dos listas: historial_vehiculos, historial_rutas
+    """
+    try:
+        # Historial de vehículos
+        vehiculos_resp = supabase.table("searches").select("*").eq("user_id", user_id).execute()
+        vehiculos = vehiculos_resp.data if vehiculos_resp.data else []
+
+        # Separar rutas de búsquedas de vehículos
+        historial_vehiculos = [v for v in vehiculos if "distance_km" not in v.get("results", {})]
+        historial_rutas = [v for v in vehiculos if "distance_km" in v.get("results", {})]
+
+        return historial_vehiculos, historial_rutas
+    except Exception as e:
+        st.error(f"Error cargando históricos: {e}")
+        return [], []
+
 
 
