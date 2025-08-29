@@ -6,7 +6,7 @@ from config import EUROPEAN_MAKES
 
 @st.cache_data(ttl=86400)
 def get_makes():
-    """Obtiene marcas de la API NHTSA y filtra solo las que están en EUROPEAN_MAKES."""
+    """Obtiene marcas de la API NHTSA y filtra solo las europeas."""
     try:
         url = "https://vpic.nhtsa.dot.gov/api/vehicles/GetAllMakes?format=json"
         res = requests.get(url, timeout=10)
@@ -39,31 +39,27 @@ def get_models(make: str):
 
 @st.cache_data(ttl=3600)
 def search_workshops(city: str, limit: int = 5):
-    """
-    Busca talleres (amenity=car_repair) en una ciudad de España usando Overpass API.
-    Devuelve hasta 'limit' resultados con un pequeño 'score' de completitud de datos.
-    """
+    """Busca hasta 'limit' talleres (amenity=car_repair) en una ciudad española usando Overpass API."""
     city = city.strip()
     if not city:
         return []
 
     overpass_url = "https://overpass-api.de/api/interpreter"
-    # Área administrativa de la ciudad (nivel municipio 8..10) en España
+    city_escaped = city.replace('"', '\\"')
+
     query = f"""
-    [out:json][timeout:25];
-    area
-      ["boundary"="administrative"]
-      ["name"="{city}"]
-      ["ISO3166-1"="ES"]
-      ["admin_level"~"^(8|9|10)$"];
-    (node["amenity"="car_repair"](area);
-     way["amenity"="car_repair"](area);
-     relation["amenity"="car_repair"](area););
-    out center tags;
+    [out:json][timeout:15];
+    area["boundary"="administrative"]["name"="{city_escaped}"]["admin_level"="8"];
+    (
+      node["amenity"="car_repair"](area);
+      way["amenity"="car_repair"](area);
+      relation["amenity"="car_repair"](area);
+    );
+    out center {limit};
     """
 
     try:
-        res = requests.post(overpass_url, data={"data": query}, timeout=25)
+        res = requests.post(overpass_url, data={"data": query}, timeout=15)
         res.raise_for_status()
         data = res.json()
     except requests.RequestException as e:
@@ -78,20 +74,18 @@ def search_workshops(city: str, limit: int = 5):
         return []
 
     def extract(el):
-        tags = el.get("tags", {}) or {}
+        tags = el.get("tags") or {}
         name = tags.get("name")
         phone = tags.get("phone") or tags.get("contact:phone")
         website = tags.get("website") or tags.get("contact:website")
         opening_hours = tags.get("opening_hours")
 
-        # Coordenadas
         if el.get("type") == "node":
             lat, lon = el.get("lat"), el.get("lon")
         else:
             center = el.get("center") or {}
             lat, lon = center.get("lat"), center.get("lon")
 
-        # Dirección
         street = tags.get("addr:street")
         housenumber = tags.get("addr:housenumber")
         postcode = tags.get("addr:postcode")
@@ -99,15 +93,11 @@ def search_workshops(city: str, limit: int = 5):
         address = None
         if street or housenumber or postcode or city_tag:
             parts = []
-            if street:
-                parts.append(street)
-            if housenumber:
-                parts.append(housenumber)
-            if postcode or city_tag:
-                parts.append(f"{postcode or ''} {city_tag}".strip())
+            if street: parts.append(street)
+            if housenumber: parts.append(housenumber)
+            if postcode or city_tag: parts.append(f"{postcode or ''} {city_tag}".strip())
             address = ", ".join(parts)
 
-        # Score heurístico por completitud
         score = 0
         if name: score += 3
         if phone: score += 2
@@ -126,10 +116,11 @@ def search_workshops(city: str, limit: int = 5):
             "score": score
         }
 
-    items = [extract(e) for e in elements]
-    # Ordenar por score desc y nombre asc
-    items = sorted(items, key=lambda x: (-x["score"], (x["name"] or "ZZZZ")))
+    # Extraer y ordenar solo hasta 'limit'
+    items = sorted([extract(e) for e in elements], key=lambda x: (-x["score"], (x["name"] or "ZZZZ")))
     return items[:limit]
+
+
 
 
 
