@@ -1,32 +1,15 @@
+# 🚗 Buscador de Vehículos (Versión PRO)
 
-# PreITV.com — Versión Avanzada (Streamlit + VPIC + Reglas Pre-ITV)
+Aplicación web en Streamlit para buscar marcas y modelos de vehículos disponibles en Europa,
+usando la API pública de NHTSA.
 
-App en Streamlit con **diseño moderno**, conexión a **VPIC (NHTSA)** para obtener **marcas y modelos reales**, y un **motor de reglas** para generar el checklist pre-ITV según **antigüedad, combustible y kilometraje**.
+## 🚀 Despliegue en Streamlit Cloud
 
-## Estructura
-```
-preitv_streamlit_advanced/
-├─ app.py
-├─ requirements.txt
-├─ assets/
-│  └─ logo.png
-├─ data/
-│  └─ maintenance_rules.json
-└─ .streamlit/
-   └─ config.toml
-```
+1. Sube este repositorio a GitHub.
+2. Crea una nueva app en [Streamlit Cloud](https://share.streamlit.io).
+3. Selecciona este repo y el archivo `app.py` como entry point.
+4. Asegúrate de que `requirements.txt` esté en la raíz.
 
-## Despliegue local
-```bash
-pip install -r requirements.txt
-streamlit run app.py
-```
+## 💻 Estructura
 
-## Despliegue en Streamlit Cloud
-1. Sube esta carpeta a un repositorio de GitHub.
-2. En Streamlit Cloud, crea una App y selecciona este repositorio.
-3. Main file: `app.py`. Python 3.13 es compatible.
-
-## Notas
-- VPIC es internacional; puedes añadir filtrado para modelos comunes en España.
-- Amplía `data/maintenance_rules.json` con tareas específicas por marca/modelo.
+mi_app_vehiculos/ ├── app.py ├── config.py ├── services/ │ └── api.py ├── utils/ │ └── helpers.py ├── styles/ │ └── theme.css ├── requirements.txt └── README.md
