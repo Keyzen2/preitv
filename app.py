@@ -27,7 +27,7 @@ modelos = get_models(marca) if marca else []
 modelo = st.selectbox("Modelo", options=modelos, index=None, placeholder="Elige un modelo")
 
 # Datos del vehículo
-anio = st.number_input("Año de matriculación", min_value=1900, max_value=datetime.date.today().year)
+anio = st.number_input("Año de matriculación", min_value=1980, max_value=datetime.date.today().year)
 km = st.number_input("Kilometraje", min_value=0, step=1000)
 combustible = st.selectbox("Combustible", ["Gasolina", "Diésel", "Híbrido", "Eléctrico"])
 
