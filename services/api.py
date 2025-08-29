@@ -101,27 +101,19 @@ def procesar_talleres(elements):
 
 @st.cache_data(ttl=3600)
 def search_workshops(city, limit=5):
-    """Busca talleres mecánicos en una ciudad de España usando Overpass API con fallback y normalización."""
+    """
+    Busca talleres mecánicos en una ciudad de España usando Overpass API.
+    Arranca directamente de un área administrativa o place=city|town para maximizar resultados.
+    """
     if not city:
         return []
 
     city_norm = normalize_name(city)
 
-    # Query principal: busca talleres que contengan el nombre de la ciudad en el tag "name"
-    query_template = f"""
+    # Query: buscar área administrativa o place=city/town y luego talleres dentro
+    query_area = f"""
     [out:json][timeout:25];
-    (
-      node["amenity"="car_repair"]["name"~"{city_norm}", i];
-      way["amenity"="car_repair"]["name"~"{city_norm}", i];
-      relation["amenity"="car_repair"]["name"~"{city_norm}", i];
-    );
-    out center tags;
-    """
-
-    # Fallback: busca por área administrativa / place=city o town
-    fallback_query = f"""
-    [out:json][timeout:25];
-    area["name"="{city}"]["place"~"city|town"];
+    area["name"="{city}"]["place"~"city|town"]["boundary"="administrative"];
     (node["amenity"="car_repair"](area);
      way["amenity"="car_repair"](area);
      relation["amenity"="car_repair"](area););
@@ -136,18 +128,15 @@ def search_workshops(city, limit=5):
 
     elements = []
     for ep in ENDPOINTS:
-        for q in (query_template, fallback_query):
-            try:
-                res = requests.post(ep, data={"data": q}, timeout=25)
-                res.raise_for_status()
-                data = res.json()
-                if data.get("elements"):
-                    elements = data["elements"]
-                    break
-            except Exception as e:
-                logging.warning(f"Overpass endpoint {ep} falló: {e}")
-        if elements:
-            break
+        try:
+            res = requests.post(ep, data={"data": query_area}, timeout=25)
+            res.raise_for_status()
+            data = res.json()
+            if data.get("elements"):
+                elements = data["elements"]
+                break
+        except Exception as e:
+            logging.warning(f"Overpass endpoint {ep} falló: {e}")
 
     return procesar_talleres(elements)[:limit]
 
