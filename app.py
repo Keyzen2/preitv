@@ -74,7 +74,7 @@ for k, v in defaults.items():
 # -----------------------------
 # Título
 # -----------------------------
-st.title("🚗 Buscador de Vehículos (Versión PRO)")
+st.title("🚗 App Mantenimiento vehículos, talleres y calcular ruta viaje")
 st.write("Selecciona una marca y modelo de Europa para ver recomendaciones y próximos mantenimientos.")
 
 # -----------------------------
