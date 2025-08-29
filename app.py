@@ -4,19 +4,19 @@ from config import APP_TITLE, APP_ICON
 from services.api import get_makes, get_models, get_brand_image
 from utils.helpers import local_css, recomendaciones_itv_detalladas
 
-# Configuración
+# Configuración de página
 st.set_page_config(page_title=APP_TITLE, page_icon=APP_ICON, layout="centered")
 local_css("styles/theme.css")
 
-# Inicializar variables de sesión
+# Inicializar session_state
 if "historial" not in st.session_state:
     st.session_state.historial = []
 if "checklist" not in st.session_state:
     st.session_state.checklist = []
 
-# Título y descripción
+# Título y explicación
 st.title("🚗 Buscador de Vehículos (Versión PRO)")
-st.write("Selecciona una marca y modelo disponible en Europa para ver recomendaciones de mantenimiento.")
+st.write("Selecciona una marca y modelo disponible en Europa para ver recomendaciones agrupadas por tipo.")
 
 # Marcas y modelos
 with st.spinner("Cargando marcas..."):
@@ -39,15 +39,16 @@ with col1:
         if marca and modelo:
             st.success(f"Has seleccionado **{marca} {modelo}**")
 
+            # Imagen de marca
             img_url = get_brand_image(marca)
             if img_url:
                 st.image(img_url, caption=f"{marca}", use_column_width=True)
             else:
                 st.info("No se encontró imagen para esta marca.")
 
+            # Guardar checklist y en histórico
             edad = datetime.date.today().year - anio
             st.session_state.checklist = recomendaciones_itv_detalladas(edad, km, combustible)
-
             registro = {
                 "marca": marca,
                 "modelo": modelo,
@@ -65,10 +66,7 @@ with col2:
         if st.session_state.historial:
             st.subheader("Histórico de coches consultados en esta sesión")
             for item in st.session_state.historial:
-                st.markdown(
-                    f"**{item['marca']} {item['modelo']}** — {item['anio']} — "
-                    f"{item['km']} km — {item['combustible']}"
-                )
+                st.markdown(f"**{item['marca']} {item['modelo']}** — {item['anio']} — {item['km']} km — {item['combustible']}")
         else:
             st.info("Aún no has consultado ningún coche.")
 
@@ -78,31 +76,26 @@ with col3:
         st.session_state.checklist = []
         st.success("Histórico y checklist borrados.")
 
-# Mostrar recomendaciones con iconos y agrupación
+# Mostrar checklist agrupado por categorías
 if st.session_state.checklist:
     st.subheader("✅ Recomendaciones antes de la ITV")
 
-    grupos = {
-        "Kilometraje": [],
-        "Edad del vehículo": [],
-        "Combustible específico": [],
-        "Otros": []
+    iconos = {
+        "Kilometraje": "⚙",
+        "Edad del vehículo": "📅",
+        "Combustible específico": "🔋",
+        "Otros": "🔧"
     }
 
-    for tarea in st.session_state.checklist:
-        t_lower = tarea.lower()
-        if "km" in t_lower or "aceite" in t_lower or "correa" in t_lower or "pastillas" in t_lower:
-            grupos["Kilometraje"].append(f"⚙ {tarea}")
-        elif "años" in t_lower or "itv" in t_lower or "edad" in t_lower:
-            grupos["Edad del vehículo"].append(f"📅 {tarea}")
-        elif "batería" in t_lower or "eléctrico" in t_lower or "inyección" in t_lower:
-            grupos["Combustible específico"].append(f"🔋 {tarea}")
-        else:
-            grupos["Otros"].append(f"🔧 {tarea}")
+    grupos = {}
+    for tarea, categoria in st.session_state.checklist:
+        grupos.setdefault(categoria, []).append(f"{iconos.get(categoria, '')} {tarea}")
 
-    for categoria, items in grupos.items():
-        if items:
-            st.markdown(f"**{categoria}**")
-            for i in items:
-                st.write(f"• {i}")
+    # Mostrar en orden predefinido
+    orden_categorias = ["Kilometraje", "Edad del vehículo", "Combustible específico", "Otros"]
+    for cat in orden_categorias:
+        if cat in grupos:
+            st.markdown(f"**{cat}**")
+            for item in grupos[cat]:
+                st.write(f"• {item}")
 
