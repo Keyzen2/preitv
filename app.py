@@ -18,18 +18,12 @@ st.set_page_config(page_title=APP_TITLE, page_icon=APP_ICON, layout="centered")
 local_css("styles/theme.css")
 
 # -----------------------------
-# Utilidades
+# Utilidad: geocodificación
 # -----------------------------
 def geocode_city(city_name: str):
-    """Devuelve (lat, lon) de una ciudad usando Nominatim (OSM)."""
     try:
         url = "https://nominatim.openstreetmap.org/search"
-        params = {
-            "q": city_name,
-            "format": "json",
-            "limit": 1,
-            "countrycodes": "es"
-        }
+        params = {"q": city_name, "format": "json", "limit": 1, "countrycodes": "es"}
         headers = {"User-Agent": "PreITV-App"}
         res = requests.get(url, params=params, headers=headers, timeout=10)
         res.raise_for_status()
@@ -173,6 +167,7 @@ if st.button("Calcular ruta"):
             horas, minutos = int(duracion_min // 60), int(duracion_min % 60)
             duracion_str = f"{horas} h {minutos} min" if horas > 0 else f"{minutos} min"
             litros, coste = calcular_coste(distancia_km, consumo, precio)
+            # Guardamos todo en session_state
             st.session_state.ruta_datos = {
                 "origen": origen_nombre,
                 "destino": destino_nombre,
@@ -184,7 +179,7 @@ if st.button("Calcular ruta"):
                 "litros": litros,
                 "coste": coste
             }
-            # Guardar local y Supabase
+            # Guardado en histórico local y Supabase
             registro_ruta = {
                 "origen": origen_nombre, "destino": destino_nombre,
                 "distancia_km": round(distancia_km, 1),
@@ -198,9 +193,46 @@ if st.button("Calcular ruta"):
                        distance_km=distancia_km, duration=duracion_str,
                        consumption_l=litros, cost=coste)
     else:
-        st.error("No se pudo obtener la ubicación de una o ambas ciudades.")
+    st.error("No se pudo calcular la ruta.")
+else:
+    st.error("No se pudo obtener la ubicación de una o ambas ciudades.")
 
-# Mostrar mapa si hay datos de ruta guardados
+# -----------------------------
+# Mostrar mapa y datos guardados de la ruta
+# -----------------------------
 if st.session_state.ruta_datos:
     datos = st.session_state.ruta_datos
     st.success(f"Distancia: {datos['distancia_km']:.1f} km — Duración: {datos['duracion']}")
+    st.info(f"Consumo estimado: {datos['litros']} L — Coste estimado: {datos['coste']} €")
+
+    try:
+        m = folium.Map(location=datos["coords_origen"], zoom_start=6)
+        folium.Marker(datos["coords_origen"], tooltip=f"Origen: {datos['origen']}").add_to(m)
+        folium.Marker(datos["coords_destino"], tooltip=f"Destino: {datos['destino']}").add_to(m)
+        folium.PolyLine(
+            [(lat, lon) for lon, lat in datos["coords_linea"]],
+            color="blue", weight=4
+        ).add_to(m)
+        st_folium(m, width=700, height=500)
+    except Exception as e:
+        st.warning(f"No se pudo renderizar el mapa: {e}")
+
+# -----------------------------
+# Histórico de rutas
+# -----------------------------
+st.markdown("---")
+st.subheader("📜 Histórico de rutas")
+if st.session_state.historial_rutas:
+    for r in st.session_state.historial_rutas:
+        st.markdown(
+            f"**{r['origen']} → {r['destino']}** — {r['distancia_km']} km — "
+            f"{r['duracion']} — {r['consumo_l']} L — {r['coste']} €"
+        )
+else:
+    st.info("Aún no has guardado rutas en esta sesión.")
+
+# Botón para borrar el histórico de rutas SIEMPRE visible
+if st.button("🗑 Limpiar rutas"):
+    st.session_state.historial_rutas = []
+    st.session_state.ruta_datos = None
+    st.success("Histórico de rutas borrado.")
