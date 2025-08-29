@@ -97,7 +97,7 @@ def render_main_app():
     # Carga historial de usuario
     # -----------------------------
     if st.session_state.user and not st.session_state.data_loaded:
-        historial, historial_rutas = load_user_history(str(st.session_state.user.id))
+        historial, historial_rutas = load_user_data(str(st.session_state.user.id))
         st.session_state.historial = historial
         st.session_state.historial_rutas = historial_rutas
         st.session_state.data_loaded = True
