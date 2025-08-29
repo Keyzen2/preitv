@@ -54,6 +54,7 @@ defaults = {
     "ultimo_anio": None,
     "ultimo_km": None,
     "ultimo_combustible": None,
+    "ruta_datos": None
 }
 for k, v in defaults.items():
     if k not in st.session_state:
@@ -99,277 +100,107 @@ else:
             st.experimental_rerun()
 
 # -----------------------------
-# Título general
-# -----------------------------
-st.title("🚗 Buscador de Vehículos (Versión PRO)")
-st.write("Selecciona una marca y modelo para ver recomendaciones y próximos mantenimientos, busca talleres y planifica rutas con coste estimado.")
-
-# -----------------------------
 # 🚗 Buscador de Vehículos
 # -----------------------------
+st.subheader("🚗 Buscador de Vehículos")
 with st.spinner("Cargando marcas..."):
     makes = get_makes()
 
-marca = st.selectbox(
-    "Marca",
-    options=makes,
-    index=(makes.index(st.session_state.ultima_marca) if st.session_state.ultima_marca in makes else 0) if makes else 0,
-)
-
+marca = st.selectbox("Marca", options=makes)
 modelos = get_models(marca) if marca else []
-modelo = st.selectbox(
-    "Modelo",
-    options=modelos,
-    index=(modelos.index(st.session_state.ultima_modelo) if st.session_state.ultima_modelo in modelos else 0) if modelos else 0,
-)
+modelo = st.selectbox("Modelo", options=modelos)
+anio = st.number_input("Año de matriculación", min_value=1900, max_value=datetime.date.today().year)
+km = st.number_input("Kilometraje", min_value=0, step=1000)
+combustible = st.selectbox("Combustible", ["Gasolina", "Diésel", "Híbrido", "Eléctrico"])
 
-anio = st.number_input(
-    "Año de matriculación",
-    min_value=1900,
-    max_value=datetime.date.today().year,
-    value=st.session_state.ultimo_anio or 2008
-)
-km = st.number_input(
-    "Kilometraje",
-    min_value=0,
-    step=1000,
-    value=st.session_state.ultimo_km or 0
-)
-combustible = st.selectbox(
-    "Combustible",
-    ["Gasolina", "Diésel", "Híbrido", "Eléctrico"],
-    index=(["Gasolina", "Diésel", "Híbrido", "Eléctrico"].index(st.session_state.ultimo_combustible)
-           if st.session_state.ultimo_combustible in ["Gasolina", "Diésel", "Híbrido", "Eléctrico"] else 0)
-)
+if st.button("🔍 Buscar información"):
+    if marca and modelo:
+        st.success(f"Has seleccionado **{marca} {modelo}**")
+        resumen = resumen_proximos_mantenimientos(km)
+        st.info(f"📅 {resumen}")
+        edad = datetime.date.today().year - anio
+        st.session_state.checklist = recomendaciones_itv_detalladas(edad, km, combustible)
+        registro = {"marca": marca, "modelo": modelo, "anio": anio, "km": km, "combustible": combustible}
+        if registro not in st.session_state.historial:
+            st.session_state.historial.append(registro)
+    else:
+        st.warning("Selecciona marca y modelo.")
 
-col_veh1, col_veh2 = st.columns([1, 1])
-with col_veh1:
-    if st.button("🔍 Buscar información"):
-        if marca and modelo:
-            st.session_state.ultima_marca = marca
-            st.session_state.ultima_modelo = modelo
-            st.session_state.ultimo_anio = anio
-            st.session_state.ultimo_km = km
-            st.session_state.ultimo_combustible = combustible
-
-            st.success(f"Has seleccionado **{marca} {modelo}**")
-            resumen = resumen_proximos_mantenimientos(km)
-            st.info(f"📅 {resumen}")
-
-            edad = datetime.date.today().year - anio
-            st.session_state.checklist = recomendaciones_itv_detalladas(edad, km, combustible)
-
-            registro = {
-                "marca": marca, "modelo": modelo, "anio": anio, "km": km, "combustible": combustible
-            }
-            if registro not in st.session_state.historial:
-                st.session_state.historial.append(registro)
-        else:
-            st.warning("Selecciona una marca y modelo válidos.")
-with col_veh2:
-    if st.button("🗑 Limpiar coches"):
-        st.session_state.historial = []
-        st.session_state.checklist = []
-        st.success("Histórico de coches y checklist borrados.")
-
-if st.session_state.historial:
-    if st.button("📜 Coches consultados"):
-        st.subheader("Histórico de coches consultados en esta sesión")
-        for item in st.session_state.historial:
-            st.markdown(
-                f"**{item['marca']} {item['modelo']}** — {item['anio']} — "
-                f"{item['km']} km — {item['combustible']}"
-            )
+if st.session_state.historial and st.button("📜 Coches consultados"):
+    for item in st.session_state.historial:
+        st.markdown(f"**{item['marca']} {item['modelo']}** — {item['anio']} — {item['km']} km — {item['combustible']}")
 
 if st.session_state.checklist:
     st.subheader("✅ Recomendaciones antes de la ITV")
-    # Agrupar por categoría si viene en formato [(tarea, categoría)]
-    grupos = {}
-    for tarea_cat in st.session_state.checklist:
-        if isinstance(tarea_cat, (tuple, list)) and len(tarea_cat) == 2:
-            tarea, categoria = tarea_cat
-        else:
-            tarea, categoria = tarea_cat, "Otros"
-        grupos.setdefault(categoria, []).append(tarea)
-
-    orden_categorias = ["Kilometraje", "Edad del vehículo", "Combustible específico", "Otros"]
-    iconos = {"Kilometraje": "⚙", "Edad del vehículo": "📅", "Combustible específico": "🔋", "Otros": "🔧"}
-
-    for cat in orden_categorias:
-        if cat in grupos:
-            st.markdown(f"**{iconos.get(cat, '🔧')} {cat}**")
-            for tarea in grupos[cat]:
-                color = "green"
-                texto = tarea.lower()
-                if any(w in texto for w in ["correa", "pastillas", "aceite"]) and km >= 60000:
-                    color = "red"
-                elif any(w in texto for w in ["correa", "pastillas", "aceite"]) and km >= 50000:
-                    color = "orange"
-                st.markdown(f"<span style='color:{color}'>• {tarea}</span>", unsafe_allow_html=True)
+    for tarea, cat in st.session_state.checklist:
+        st.markdown(f"- **{cat}:** {tarea}")
 
 # -----------------------------
 # 🔧 Talleres por ciudad
 # -----------------------------
 st.markdown("---")
 st.subheader("🔧 Talleres en tu ciudad")
-
-col_tw1, col_tw2 = st.columns([2, 1])
-with col_tw1:
-    ciudad_busqueda = st.text_input("Ciudad", value="")
-with col_tw2:
-    limite = st.slider("Resultados", min_value=3, max_value=10, value=5, step=1)
-
-col_t_btn1, col_t_btn2 = st.columns([1, 1])
-with col_t_btn1:
-    buscar_talleres = st.button("Buscar talleres")
-with col_t_btn2:
-    limpiar_talleres = st.button("Limpiar talleres")
-
-if limpiar_talleres:
-    st.session_state.talleres = []
-    st.success("Listado de talleres limpiado.")
-
-if buscar_talleres:
-    if not ciudad_busqueda.strip():
-        st.warning("Escribe una ciudad de España.")
-    else:
-        with st.spinner(f"Buscando talleres en {ciudad_busqueda}..."):
-            resultados = search_workshops(ciudad_busqueda.strip(), limit=limite)
-            st.session_state.talleres = resultados
-            time.sleep(0.2)
-        if resultados:
-            # Guardar en Supabase
-            try:
-                save_search(user_id=str(st.session_state.user.id), city=ciudad_busqueda.strip(), results=resultados)
-            except Exception as e:
-                st.warning(f"No se pudo guardar la búsqueda en Supabase: {e}")
-        else:
-            st.info("No se han encontrado talleres con datos suficientes en esta ciudad.")
+ciudad_busqueda = st.text_input("Ciudad para buscar talleres")
+if st.button("Buscar talleres"):
+    resultados = search_workshops(ciudad_busqueda, limit=5)
+    st.session_state.talleres = resultados
+    if resultados:
+        save_search(user_id=str(st.session_state.user.id), city=ciudad_busqueda, results=resultados)
 
 if st.session_state.talleres:
     for i, t in enumerate(st.session_state.talleres, start=1):
-        nombre = t.get("name") or "Taller sin nombre"
-        addr = t.get("address") or ""
-        tel = t.get("phone")
-        web = t.get("website")
-        lat = t.get("lat")
-        lon = t.get("lon")
-        oh = t.get("opening_hours")
-
-        linea_titulo = f"**{i}. {nombre}**"
-        if web:
-            linea_titulo = f"[{linea_titulo}]({web})"
-        st.markdown(linea_titulo)
-        if addr:
-            st.markdown(f"- **Dirección:** {addr}")
-        if tel:
-            st.markdown(f"- **Teléfono:** [Llamar](tel:{tel})")
-        if oh:
-            st.markdown(f"- **Horario:** {oh}")
-        if lat and lon:
-            osm = f"https://www.openstreetmap.org/?mlat={lat}&mlon={lon}#map=17/{lat}/{lon}"
-            st.markdown(f"- **Mapa:** [Ver en OpenStreetMap]({osm})")
-        st.markdown("---")
+        st.markdown(f"**{i}. {t.get('name','Taller')}** — {t.get('address','')}")
 
 # -----------------------------
 # 🗺️ Planificador de ruta y coste
 # -----------------------------
 st.markdown("---")
 st.subheader("🗺️ Planificador de ruta y coste")
+origen_nombre = st.text_input("Ciudad de origen", "Almería")
+destino_nombre = st.text_input("Ciudad de destino", "Sevilla")
+consumo = st.number_input("Consumo medio (L/100km)", value=6.5)
+precio = st.number_input("Precio combustible (€/L)", value=1.6)
 
-col_r1, col_r2 = st.columns(2)
-with col_r1:
-    origen_nombre = st.text_input("Ciudad de origen", "Almería")
-with col_r2:
-    destino_nombre = st.text_input("Ciudad de destino", "Sevilla")
-
-col_r3, col_r4, col_r5 = st.columns(3)
-with col_r3:
-    consumo = st.number_input("Consumo medio (L/100km)", min_value=3.0, max_value=20.0, value=6.5)
-with col_r4:
-    precio = st.number_input("Precio combustible (€/L)", min_value=0.5, max_value=3.0, value=1.6)
-with col_r5:
-    calcular_ruta = st.button("Calcular ruta")
-
-if calcular_ruta:
+if st.button("Calcular ruta"):
     coords_origen = geocode_city(origen_nombre.strip())
     coords_destino = geocode_city(destino_nombre.strip())
-
-    if not coords_origen or not coords_destino:
-        st.error("No se pudo obtener la ubicación de una o ambas ciudades.")
-    else:
+    if coords_origen and coords_destino:
         lat_o, lon_o = coords_origen
         lat_d, lon_d = coords_destino
-
-        with st.spinner(f"Calculando ruta de {origen_nombre} a {destino_nombre}..."):
-            ruta = get_route((lon_o, lat_o), (lon_d, lat_d))
-
+        ruta = get_route((lon_o, lat_o), (lon_d, lat_d))
         if ruta:
             distancia_km, duracion_min, coords_linea = ruta
-
-            # Duración en horas y minutos
-            horas = int(duracion_min // 60)
-            minutos = int(duracion_min % 60)
+            horas, minutos = int(duracion_min // 60), int(duracion_min % 60)
             duracion_str = f"{horas} h {minutos} min" if horas > 0 else f"{minutos} min"
-
             litros, coste = calcular_coste(distancia_km, consumo, precio)
-
-            st.success(f"Distancia: {distancia_km:.1f} km — Duración: {duracion_str}")
-            st.info(f"Consumo estimado: {litros} L — Coste estimado: {coste} €")
-
-            # Mapa de la ruta
-            try:
-                m = folium.Map(location=[lat_o, lon_o], zoom_start=6)
-                folium.Marker([lat_o, lon_o], tooltip=f"Origen: {origen_nombre}").add_to(m)
-                folium.Marker([lat_d, lon_d], tooltip=f"Destino: {destino_nombre}").add_to(m)
-                folium.PolyLine([(lat, lon) for lon, lat in coords_linea], color="blue", weight=4).add_to(m)
-                st_folium(m, width=700, height=500)
-            except Exception as e:
-                st.warning(f"No se pudo renderizar el mapa: {e}")
-
-            # Guardar en histórico local
-            registro_ruta = {
+            st.session_state.ruta_datos = {
                 "origen": origen_nombre,
                 "destino": destino_nombre,
+                "coords_origen": (lat_o, lon_o),
+                "coords_destino": (lat_d, lon_d),
+                "coords_linea": coords_linea,
+                "distancia_km": distancia_km,
+                "duracion": duracion_str,
+                "litros": litros,
+                "coste": coste
+            }
+            # Guardar local y Supabase
+            registro_ruta = {
+                "origen": origen_nombre, "destino": destino_nombre,
                 "distancia_km": round(distancia_km, 1),
                 "duracion": duracion_str,
-                "consumo_l": litros,
-                "coste": coste
+                "consumo_l": litros, "coste": coste
             }
             if registro_ruta not in st.session_state.historial_rutas:
                 st.session_state.historial_rutas.append(registro_ruta)
+            save_route(user_id=str(st.session_state.user.id),
+                       origin=origen_nombre, destination=destino_nombre,
+                       distance_km=distancia_km, duration=duracion_str,
+                       consumption_l=litros, cost=coste)
+    else:
+        st.error("No se pudo obtener la ubicación de una o ambas ciudades.")
 
-            # Guardar en Supabase
-            try:
-                save_route(
-                    user_id=str(st.session_state.user.id),
-                    origin=origen_nombre,
-                    destination=destino_nombre,
-                    distance_km=distancia_km,
-                    duration=duracion_str,
-                    consumption_l=litros,
-                    cost=coste
-                )
-            except Exception as e:
-                st.warning(f"No se pudo guardar la ruta en Supabase: {e}")
-
-        else:
-            st.error("No se pudo calcular la ruta.")
-
-# Histórico de rutas: mostrar y limpiar
-col_hist1, col_hist2 = st.columns([1, 1])
-with col_hist1:
-    if st.button("📜 Rutas consultadas"):
-        if st.session_state.historial_rutas:
-            st.subheader("Histórico de rutas")
-            for r in st.session_state.historial_rutas:
-                st.markdown(
-                    f"**{r['origen']} → {r['destino']}** — {r['distancia_km']} km — "
-                    f"{r['duracion']} — {r['consumo_l']} L — {r['coste']} €"
-                )
-        else:
-            st.info("Sin rutas guardadas.")
-with col_hist2:
-    if st.button("🗑 Limpiar rutas"):
-        st.session_state.historial_rutas = []
-        st.success("Histórico de rutas borrado.")
+# Mostrar mapa si hay datos de ruta guardados
+if st.session_state.ruta_datos:
+    datos = st.session_state.ruta_datos
+    st.success(f"Distancia: {datos['distancia_km']:.1f} km — Duración: {datos['duracion']}")
