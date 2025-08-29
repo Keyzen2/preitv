@@ -7,73 +7,69 @@ def local_css(file_name):
 
 def recomendaciones_itv_detalladas(edad, km, combustible):
     """
-    Devuelve lista de cadenas con recomendaciones de mantenimiento
-    basadas en kilometraje y antigüedad, usando buenas prácticas comunes
-    publicadas en medios especializados (Autopista, Feu Vert, Autofácil...).
+    Devuelve lista de tuplas (tarea, categoría) con categorías predefinidas:
+    - 'Kilometraje'
+    - 'Edad del vehículo'
+    - 'Combustible específico'
+    - 'Otros'
     """
-    recomendaciones = []
+    recs = []
 
-    # 5.000 km
+    # Kilometraje
     if km >= 5000:
-        recomendaciones.append("Revisar nivel y estado del aceite del motor — Detectar fugas y evitar desgaste prematuro")
-        recomendaciones.append("Comprobar estado de neumáticos — Grietas, deformaciones, dibujo mínimo")
-        recomendaciones.append("Verificar funcionamiento de luces y limpiaparabrisas")
+        recs.append(("Revisar nivel y estado del aceite del motor — Detectar fugas y evitar desgaste prematuro", "Kilometraje"))
+        recs.append(("Comprobar estado de neumáticos — Grietas, deformaciones, dibujo mínimo", "Kilometraje"))
+        recs.append(("Verificar funcionamiento de luces y limpiaparabrisas", "Kilometraje"))
 
-    # 10.000 km
     if km >= 10000:
-        recomendaciones.append("Alineación y balanceo de ruedas — Evita desgaste irregular")
-        recomendaciones.append("Rotación de neumáticos — Alarga su vida útil")
-        recomendaciones.append("Revisión básica del sistema eléctrico — Batería y conexiones")
+        recs.append(("Alineación y balanceo de ruedas — Evita desgaste irregular", "Kilometraje"))
+        recs.append(("Rotación de neumáticos — Alarga su vida útil", "Kilometraje"))
+        recs.append(("Revisión básica del sistema eléctrico — Batería y conexiones", "Otros"))
 
-    # 15.000-20.000 km o 1 año
     if km >= 15000:
-        recomendaciones.append("Cambio de aceite y filtro — Mantiene lubricación óptima")
-        recomendaciones.append("Revisión de frenos — Grosor de pastillas y discos")
-        recomendaciones.append("Verificación de batería y carga")
-        recomendaciones.append("Sustituir filtro de aire y de habitáculo si procede")
-        recomendaciones.append("Revisión electrónica en taller")
+        recs.append(("Cambio de aceite y filtro — Mantiene lubricación óptima", "Kilometraje"))
+        recs.append(("Revisión de frenos — Grosor de pastillas y discos", "Kilometraje"))
+        recs.append(("Verificación de batería y carga", "Otros"))
+        recs.append(("Sustituir filtro de aire y de habitáculo si procede", "Kilometraje"))
+        recs.append(("Revisión electrónica en taller", "Otros"))
 
-    # 30.000 km
     if km >= 30000:
-        recomendaciones.append("Cambio de pastillas de freno si no se hizo antes")
-        recomendaciones.append("Revisión de discos de freno")
-        recomendaciones.append("Comprobación del sistema de climatización")
+        recs.append(("Cambio de pastillas de freno si no se hizo antes", "Kilometraje"))
+        recs.append(("Revisión de discos de freno", "Kilometraje"))
+        recs.append(("Comprobación del sistema de climatización", "Otros"))
 
-    # 40.000 km
     if km >= 40000:
         if combustible.lower() == "gasolina":
-            recomendaciones.append("Sustituir bujías y revisar encendido")
-        recomendaciones.append("Sustitución de líquido de frenos")
-        recomendaciones.append("Revisión de amortiguadores, manguitos y latiguillos")
+            recs.append(("Sustituir bujías y revisar encendido", "Combustible específico"))
+        recs.append(("Sustitución de líquido de frenos", "Kilometraje"))
+        recs.append(("Revisión de amortiguadores, manguitos y latiguillos", "Otros"))
 
-    # 60.000 km
     if km >= 60000:
-        recomendaciones.append("Cambio de filtro de aire y combustible")
-        recomendaciones.append("Revisión o sustitución de correa de distribución si aplica")
-        recomendaciones.append("Revisión del sistema de refrigeración")
+        recs.append(("Cambio de filtro de aire y combustible", "Kilometraje"))
+        recs.append(("Revisión o sustitución de correa de distribución si aplica", "Kilometraje"))
+        recs.append(("Revisión del sistema de refrigeración", "Otros"))
 
-    # 80.000 km
     if km >= 80000:
-        recomendaciones.append("Revisión del sistema de escape")
-        recomendaciones.append("Sustitución de correa de distribución y accesorios si no se hizo antes")
-        recomendaciones.append("Revisión de airbags (cada 5 años)")
-        recomendaciones.append("Comprobación de batería (vida útil media 5 años)")
-        recomendaciones.append("Revisión de carga de gas del aire acondicionado")
+        recs.append(("Revisión del sistema de escape", "Otros"))
+        recs.append(("Sustitución de correa de distribución y accesorios si no se hizo antes", "Kilometraje"))
+        recs.append(("Revisión de airbags (cada 5 años)", "Otros"))
+        recs.append(("Comprobación de batería (vida útil media 5 años)", "Otros"))
+        recs.append(("Revisión de carga de gas del aire acondicionado", "Otros"))
 
-    # Edad del vehículo
+    # Edad
     if edad >= 4:
-        recomendaciones.append("Comprobar luces, señalización, suspensión y dirección — Requisitos ITV")
+        recs.append(("Comprobar luces, señalización, suspensión y dirección — Requisitos ITV", "Edad del vehículo"))
     if edad >= 8:
-        recomendaciones.append("Inspección completa de frenos, dirección y chasis — Previene fallos estructurales")
+        recs.append(("Inspección completa de frenos, dirección y chasis — Previene fallos estructurales", "Edad del vehículo"))
 
-    # Combustible específico
+    # Combustible
     if combustible.lower() == "diésel":
-        recomendaciones.append("Comprobar filtro de partículas (DPF) e inyección — Evita pérdida de potencia y emisiones")
+        recs.append(("Comprobar filtro de partículas (DPF) e inyección — Evita pérdida de potencia y emisiones", "Combustible específico"))
     elif combustible.lower() == "híbrido":
-        recomendaciones.append("Revisar batería híbrida y sistema eléctrico — Mantiene autonomía")
+        recs.append(("Revisar batería híbrida y sistema eléctrico — Mantiene autonomía", "Combustible específico"))
     elif combustible.lower() == "eléctrico":
-        recomendaciones.append("Comprobar batería de tracción y sistema de carga — Asegura rendimiento y autonomía")
+        recs.append(("Comprobar batería de tracción y sistema de carga — Asegura rendimiento y autonomía", "Combustible específico"))
 
-    return recomendaciones
+    return recs
 
 
