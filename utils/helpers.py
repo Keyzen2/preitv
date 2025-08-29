@@ -88,6 +88,21 @@ def resumen_proximos_mantenimientos(km):
     else:
         return "Se han alcanzado la mayoría de hitos de mantenimiento importantes."
 
+# ------------------------------------------------------------
+# Lista de todas las ciudades de España para el selector rápido
+# ------------------------------------------------------------
+SPAIN_CITIES = [
+    "Madrid","Barcelona","Valencia","Sevilla","Zaragoza","Málaga","Murcia","Palma","Bilbao","Valladolid",
+    "Córdoba","A Coruña","Granada","Oviedo","Santander","Donostia / San Sebastián","Pamplona","Vigo",
+    "Almería","Albacete","Badajoz","Burgos","Cáceres","Cartagena","Castellón de la Plana","Ciudad Real",
+    "Cuenca","Gerona","Girona","Huelva","Jaén","León","Lleida","Logroño","Lugo","Ourense","Palencia",
+    "Ponferrada","Reus","San Fernando","Soria","Tarragona","Toledo","Torrejón de Ardoz","Tudela","Valladolid",
+    "Vitoria-Gasteiz","Vélez-Málaga","Zamora","Zarautz","Alcoy","Avilés","Elche","Gijón","Huesca","Lorca",
+    "Lugo","Manresa","Marbella","Mataró","Motril","Orihuela","Puertollano","Salamanca","San Sebastián de los Reyes",
+    "Santa Cruz de Tenerife","Santander","Segovia","Tarrasa","Teruel","Toledo","Torrevieja","Valladolid"
+]
+
+
 
 
 
