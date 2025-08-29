@@ -1,4 +1,4 @@
-  Volvamos a un punto en el que el código funcionaba, y partir de este código te pedí unas mejoras como el panel de usuario, como mejora en el buscador de talleres, los historiales para que se guardasen en supabase y se pudieran eliminar por el usuario import datetime
+import datetime
 import time
 import requests
 import streamlit as st
