@@ -101,86 +101,19 @@ def render_main_app():
         from services.supabase_client import supabase
         st.session_state.supabase = supabase
 
-    # Cargamos historial desde Supabase solo una vez
-    if st.session_state.user and not st.session_state.get("data_loaded"):
-        historial, historial_rutas = load_user_data(str(st.session_state.user.id))
-        st.session_state.historial = historial
-        st.session_state.historial_rutas = historial_rutas
-        st.session_state.data_loaded = True
+    # -----------------------------
+    # Panel de usuario
+    # -----------------------------
+    render_user_panel()
 
     # -----------------------------
-# Panel de usuario y sesión
-# -----------------------------
-def render_user_panel():
-    """Muestra el panel de usuario con opciones de cambio de nombre y contraseña."""
-    user_email = getattr(st.session_state.user, "email", None) or st.session_state.user.get("email")
-    user_name = getattr(st.session_state.user, "user_metadata", {}).get("name", "")
-
-    st.subheader(f"👋 Hola, {user_name or user_email}")
-
-    with st.expander("⚙️ Configuración de cuenta", expanded=True):
-        # Cambiar nombre
-        nuevo_nombre = st.text_input("Cambiar nombre", value=user_name)
-        if st.button("Actualizar nombre"):
-            if nuevo_nombre:
-                try:
-                    supabase.auth.update_user({"data": {"name": nuevo_nombre}})
-                    st.success("Nombre actualizado correctamente")
-                    # Actualizar sesión local
-                    st.session_state.user.user_metadata["name"] = nuevo_nombre
-                except Exception as e:
-                    st.error(f"Error al actualizar nombre: {e}")
-            else:
-                st.warning("Introduce un nombre válido")
-
-        # Cambiar contraseña
-        nueva_pass = st.text_input("Nueva contraseña", type="password")
-        if st.button("Actualizar contraseña"):
-            if nueva_pass:
-                try:
-                    supabase.auth.update_user({"password": nueva_pass})
-                    st.success("Contraseña actualizada correctamente")
-                except Exception as e:
-                    st.error(f"Error al actualizar contraseña: {e}")
-            else:
-                st.warning("Introduce una contraseña válida")
-
-    # Cerrar sesión
-    if st.button("Cerrar sesión"):
-        sign_out()
-        # Limpiar sesión local completamente
-     keys_to_reset = [
-    "user", "data_loaded", "historial", "historial_rutas",
-    "checklist", "talleres", "ultima_marca", "ultima_modelo",
-    "ultimo_anio", "ultimo_km", "ultimo_combustible", "ruta_datos"
-]
-for k in keys_to_reset:
-    st.session_state[k] = None
-st.experimental_rerun()
-        st.experimental_rerun()
-# -----------------------------
-# Panel de usuario editable
-# -----------------------------
-if st.session_state.get("show_user_panel"):
-    st.subheader("👤 Panel de usuario")
-    nombre_actual = st.session_state.user.user_metadata.get("full_name", "")
-    nuevo_nombre = st.text_input("Nombre", value=nombre_actual)
-    nueva_password = st.text_input("Nueva contraseña", type="password")
-
-    if st.button("Guardar cambios"):
-        try:
-            updates = {}
-            if nuevo_nombre != nombre_actual:
-                updates["full_name"] = nuevo_nombre
-            if nueva_password:
-                updates["password"] = nueva_password
-            if updates:
-                supabase.auth.update_user(updates)
-                st.success("Cambios guardados correctamente")
-                # Actualizamos localmente
-                st.session_state.user.user_metadata["full_name"] = nuevo_nombre
-        except Exception as e:
-            st.error(f"No se pudieron guardar los cambios: {e}")
+    # Cargar historial desde Supabase solo una vez
+    # -----------------------------
+    if not st.session_state.get("data_loaded") and st.session_state.user:
+        historial, historial_rutas = load_user_data(str(st.session_state.user.id))
+        st.session_state.historial = historial or []
+        st.session_state.historial_rutas = historial_rutas or []
+        st.session_state.data_loaded = True
 
     # -----------------------------
     # Buscador de vehículos
@@ -323,38 +256,24 @@ if st.session_state.get("show_user_panel"):
         except Exception as e:
             st.warning(f"No se pudo renderizar el mapa: {e}")
 
- # -----------------------------
-# Histórico de rutas
-# -----------------------------
-st.markdown("---")
-st.subheader("📜 Histórico de rutas")
+    # -----------------------------
+    # Histórico de rutas
+    # -----------------------------
+    st.markdown("---")
+    st.subheader("📜 Histórico de rutas")
+    if st.session_state.historial_rutas:
+        with st.expander("Ver rutas guardadas en esta sesión", expanded=True):
+            for i, r in enumerate(st.session_state.historial_rutas, start=1):
+                st.markdown(
+                    f"**{i}. {r.get('origen','Desconocido')} → {r.get('destino','Desconocido')}** — "
+                    f"{r.get('distancia_km',0)} km — {r.get('duracion','N/A')} — "
+                    f"{r.get('consumo_l',0)} L — {r.get('coste',0)} €"
+                )
+    else:
+        st.info("Aún no has guardado rutas en esta sesión.")
 
-if st.session_state.historial_rutas:
-    with st.expander("Ver rutas guardadas en esta sesión", expanded=True):
-        for i, r in enumerate(st.session_state.historial_rutas, start=1):
-            origen = r.get("origen", "Desconocido")
-            destino = r.get("destino", "Desconocido")
-            distancia = r.get("distancia_km", 0)
-            duracion = r.get("duracion", "N/A")
-            consumo = r.get("consumo_l", 0)
-            coste = r.get("coste", 0)
-            st.markdown(
-                f"**{i}. {origen} → {destino}** — {distancia} km — {duracion} — {consumo} L — {coste} €"
-            )
-else:
-    st.info("Aún no has guardado rutas en esta sesión.")
-
-# Botón para borrar historial de rutas de la sesión
-if st.button("🗑 Limpiar historial de la sesión actual"):
-    st.session_state.historial_rutas = []
-    st.session_state.ruta_datos = None
-    st.success("Historial de rutas de la sesión actual borrado.")
-    st.caption("Esto no afecta al historial guardado permanentemente en tu cuenta.")
-# -----------------------------
-# Flujo principal
-# -----------------------------
-if not st.session_state.user:
-    render_login_form()
-else:
-    render_user_panel()      # 👈 panel de usuario
-    render_main_app()        # 👈 resto de la app
+    if st.button("🗑 Limpiar historial de la sesión actual"):
+        st.session_state.historial_rutas = []
+        st.session_state.ruta_datos = None
+        st.success("Historial de rutas de la sesión actual borrado.")
+        st.caption("Esto no afecta al historial guardado permanentemente en tu cuenta.")
