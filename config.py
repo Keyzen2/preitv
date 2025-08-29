@@ -7,3 +7,6 @@ EUROPEAN_MAKES = [
     "SEAT", "Skoda", "Volkswagen", "Volvo", "Alfa Romeo",
     "Mini", "Porsche", "Jaguar", "Land Rover"
 ]
+
+# Clave de acceso Unsplash
+UNSPLASH_ACCESS_KEY = "E7eflyO73LGMD72hV1AoSt-4nrh5E-89xxWxYl2c4Cg"
