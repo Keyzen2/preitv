@@ -100,36 +100,38 @@ def procesar_talleres(elements):
     return sorted(items, key=lambda x: (-x["score"], x.get("name") or "ZZZZ"))
 
 @st.cache_data(ttl=3600)
-def search_workshops(city, limit=5):
+def search_workshops(city, limit=5, radio_metros=5000):
     """
     Busca talleres mecánicos en una ciudad de España usando Overpass API.
-    Arranca directamente de un área administrativa o place=city|town para maximizar resultados.
+    Método: nodo place=city/town/village + búsqueda radial.
     """
     if not city:
         return []
 
     city_norm = normalize_name(city)
 
-    # Query: buscar área administrativa o place=city/town y luego talleres dentro
-    query_area = f"""
-    [out:json][timeout:25];
-    area["name"="{city}"]["place"~"city|town"]["boundary"="administrative"];
-    (node["amenity"="car_repair"](area);
-     way["amenity"="car_repair"](area);
-     relation["amenity"="car_repair"](area););
+    # Query: localizar nodo de la ciudad y buscar talleres en radio
+    query = f"""
+    [out:json][timeout:60];
+    node["place"~"city|town|village"]["name"="{city_norm}"]->.city;
+    (
+      node["amenity"="car_repair"](around.city:{radio_metros});
+      way["amenity"="car_repair"](around.city:{radio_metros});
+      relation["amenity"="car_repair"](around.city:{radio_metros});
+    );
     out center tags;
     """
 
     ENDPOINTS = [
-        "https://overpass-api.de/api/interpreter",
         "https://overpass.kumi.systems/api/interpreter",
-        "https://overpass.nchc.org.tw/api/interpreter"
+        "https://overpass.nchc.org.tw/api/interpreter",
+        "https://overpass-api.de/api/interpreter"
     ]
 
     elements = []
     for ep in ENDPOINTS:
         try:
-            res = requests.post(ep, data={"data": query_area}, timeout=25)
+            res = requests.post(ep, data={"data": query}, timeout=60)
             res.raise_for_status()
             data = res.json()
             if data.get("elements"):
@@ -139,6 +141,7 @@ def search_workshops(city, limit=5):
             logging.warning(f"Overpass endpoint {ep} falló: {e}")
 
     return procesar_talleres(elements)[:limit]
+
 
 
 
