@@ -167,7 +167,8 @@ if st.button("Calcular ruta"):
             horas, minutos = int(duracion_min // 60), int(duracion_min % 60)
             duracion_str = f"{horas} h {minutos} min" if horas > 0 else f"{minutos} min"
             litros, coste = calcular_coste(distancia_km, consumo, precio)
-            # Guardamos todo en session_state
+
+            # Guardamos en session_state
             st.session_state.ruta_datos = {
                 "origen": origen_nombre,
                 "destino": destino_nombre,
@@ -179,7 +180,8 @@ if st.button("Calcular ruta"):
                 "litros": litros,
                 "coste": coste
             }
-            # Guardado en histórico local y Supabase
+
+            # Guardado en histórico y en Supabase
             registro_ruta = {
                 "origen": origen_nombre, "destino": destino_nombre,
                 "distancia_km": round(distancia_km, 1),
@@ -188,14 +190,17 @@ if st.button("Calcular ruta"):
             }
             if registro_ruta not in st.session_state.historial_rutas:
                 st.session_state.historial_rutas.append(registro_ruta)
-            save_route(user_id=str(st.session_state.user.id),
-                       origin=origen_nombre, destination=destino_nombre,
-                       distance_km=distancia_km, duration=duracion_str,
-                       consumption_l=litros, cost=coste)
+
+            save_route(
+                user_id=str(st.session_state.user.id),
+                origin=origen_nombre, destination=destino_nombre,
+                distance_km=distancia_km, duration=duracion_str,
+                consumption_l=litros, cost=coste
+            )
+        else:
+            st.error("No se pudo calcular la ruta.")
     else:
-    st.error("No se pudo calcular la ruta.")
-else:
-    st.error("No se pudo obtener la ubicación de una o ambas ciudades.")
+        st.error("No se pudo obtener la ubicación de una o ambas ciudades.")
 
 # -----------------------------
 # Mostrar mapa y datos guardados de la ruta
