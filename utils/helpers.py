@@ -73,3 +73,5 @@ def recomendaciones_itv_detalladas(edad, km, combustible):
     return recs
 
 
+
+
