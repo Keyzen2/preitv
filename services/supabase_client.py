@@ -2,14 +2,14 @@ from supabase import create_client
 import streamlit as st
 from typing import Optional
 
-# Leer credenciales desde secrets.toml de Streamlit
+# Credenciales desde secrets.toml (configuradas en Streamlit)
 SUPABASE_URL = st.secrets["SUPABASE_URL"]
 SUPABASE_KEY = st.secrets["SUPABASE_KEY"]
 
 supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 # -----------------------------
-# Funciones de autenticación
+# Autenticación
 # -----------------------------
 def sign_up(email: str, password: str):
     """Registrar un nuevo usuario."""
@@ -28,10 +28,10 @@ def get_user():
     return supabase.auth.get_user()
 
 # -----------------------------
-# Guardar búsquedas y rutas
+# Guardado de búsquedas y rutas
 # -----------------------------
 def save_search(user_id: Optional[str], city: str, results: dict):
-    """Guardar búsqueda de talleres."""
+    """Guardar búsqueda de talleres en la tabla 'searches'."""
     try:
         data = {
             "user_id": user_id,
@@ -40,11 +40,11 @@ def save_search(user_id: Optional[str], city: str, results: dict):
         }
         supabase.table("searches").insert(data).execute()
     except Exception as e:
-        st.error(f"Error guardando búsqueda en Supabase: {e}")
+        st.error(f"Error guardando búsqueda: {e}")
 
 def save_route(user_id: Optional[str], origin: str, destination: str,
                distance_km: float, duration: str, consumption_l: float, cost: float):
-    """Guardar ruta y coste."""
+    """Guardar ruta y coste en la tabla 'searches'."""
     try:
         data = {
             "user_id": user_id,
@@ -58,7 +58,7 @@ def save_route(user_id: Optional[str], origin: str, destination: str,
         }
         supabase.table("searches").insert(data).execute()
     except Exception as e:
-        st.error(f"Error guardando ruta en Supabase: {e}")
+        st.error(f"Error guardando ruta: {e}")
 
 
 
