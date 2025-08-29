@@ -1,3 +1,10 @@
+import streamlit as st
+
+def local_css(file_name):
+    """Carga el CSS local desde el archivo indicado."""
+    with open(file_name) as f:
+        st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
+
 def recomendaciones_itv_detalladas(edad, km, combustible):
     """
     Devuelve lista de cadenas con recomendaciones de mantenimiento
@@ -69,3 +76,4 @@ def recomendaciones_itv_detalladas(edad, km, combustible):
         recomendaciones.append("Comprobar batería de tracción y sistema de carga — Asegura rendimiento y autonomía")
 
     return recomendaciones
+
