@@ -11,6 +11,28 @@ from services.routes import get_route, calcular_coste
 from services.supabase_client import sign_in, sign_up, sign_out, save_search, save_route, load_user_data
 from utils.helpers import local_css, recomendaciones_itv_detalladas, resumen_proximos_mantenimientos, ciudades_es
 
+def render_user_panel():
+    st.subheader("👤 Panel de usuario")
+    # Nombre editable
+    nombre_actual = st.session_state.user.user_metadata.get("full_name", "")
+    nuevo_nombre = st.text_input("Nombre", value=nombre_actual)
+    # Contraseña editable
+    nueva_password = st.text_input("Nueva contraseña", type="password")
+    if st.button("Guardar cambios"):
+        try:
+            updates = {}
+            if nuevo_nombre != nombre_actual:
+                updates["full_name"] = nuevo_nombre
+            if nueva_password:
+                updates["password"] = nueva_password
+            if updates:
+                supabase.auth.update_user(updates)
+                st.success("Cambios guardados correctamente")
+                # Actualizamos localmente
+                st.session_state.user.user_metadata["full_name"] = nuevo_nombre
+        except Exception as e:
+            st.error(f"No se pudieron guardar los cambios: {e}")
+
 # -----------------------------
 # Configuración de página y CSS
 # -----------------------------
