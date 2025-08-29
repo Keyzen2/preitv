@@ -305,4 +305,12 @@ def render_main_app():
         st.session_state.historial_rutas = []
         st.session_state.ruta_datos = None
         st.success("Historial de rutas de la sesión actual borrado.")
-        st.caption("Esto no afecta al historial guardado permanentemente en tu cuenta.")
+        st.caption("Esto no afecta al historial guardado permanentemente en tu cuenta."
+
+       # -----------------------------
+# Flujo principal
+# -----------------------------
+if not st.session_state.user:
+    render_login_form()
+else:
+    render_main_app()            
