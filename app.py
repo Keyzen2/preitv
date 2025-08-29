@@ -219,7 +219,6 @@ if st.session_state.talleres:
                 linea_titulo = f"**{i}. {nombre}**"
         if web:
             linea_titulo = f"[{linea_titulo}]({web})"
-
         st.markdown(linea_titulo)
         if addr:
             st.markdown(f"- **Dirección:** {addr}")
