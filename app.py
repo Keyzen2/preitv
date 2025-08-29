@@ -5,6 +5,7 @@ import streamlit as st
 from config import APP_TITLE, APP_ICON
 from services.api import get_makes, get_models, search_workshops
 from services.routes import get_route, calcular_coste
+from services.fuel import get_fuel_prices, filter_cheapest_on_route
 from utils.helpers import local_css, recomendaciones_itv_detalladas, resumen_proximos_mantenimientos, ciudades_es
 import folium
 from streamlit_folium import st_folium
@@ -215,10 +216,21 @@ if st.session_state.talleres:
         lat = t.get("lat")
         lon = t.get("lon")
         oh = t.get("opening_hours")
-        linea_titulo = f"**{i}. {nombre}**"
+                linea_titulo = f"**{i}. {nombre}**"
         if web:
             linea_titulo = f"[{linea_titulo}]({web})"
-                    st.markdown("---")
+
+        st.markdown(linea_titulo)
+        if addr:
+            st.markdown(f"- **Dirección:** {addr}")
+        if tel:
+            st.markdown(f"- **Teléfono:** [Llamar](tel:{tel})")
+        if oh:
+            st.markdown(f"- **Horario:** {oh}")
+        if lat and lon:
+            osm = f"https://www.openstreetmap.org/?mlat={lat}&mlon={lon}#map=17/{lat}/{lon}"
+            st.markdown(f"- **Mapa:** [Ver en OpenStreetMap]({osm})")
+        st.markdown("---")
 
 # -----------------------------
 # 🗺️ Planificador de ruta y coste de combustible
@@ -259,12 +271,40 @@ if calcular_ruta:
             st.success(f"Distancia: {distancia_km:.1f} km — Duración: {duracion_min:.0f} min")
             st.info(f"Consumo estimado: {litros} L — Coste estimado: {coste} €")
 
-            # Mapa con folium
+            # Mapa base
             m = folium.Map(location=[lat_o, lon_o], zoom_start=6)
             folium.Marker([lat_o, lon_o], tooltip=f"Origen: {origen_nombre}").add_to(m)
             folium.Marker([lat_d, lon_d], tooltip=f"Destino: {destino_nombre}").add_to(m)
             folium.PolyLine([(lat, lon) for lon, lat in coords_linea], color="blue", weight=4).add_to(m)
+
+            # ⛽ Gasolineras más baratas en la ruta
+            st.subheader("⛽ Gasolineras más baratas en la ruta")
+            estaciones = get_fuel_prices()
+            baratas = filter_cheapest_on_route(
+                estaciones,
+                coords_linea,
+                fuel_type="Gasolina 95 E5",  # podrías enlazarlo con el combustible del vehículo
+                max_distance_km=5,
+                limit=5
+            )
+
+            if baratas:
+                for g in baratas:
+                    folium.Marker(
+                        [g["lat"], g["lon"]],
+                        tooltip=f"{g['rotulo']} - {g['precio']} €/L",
+                        icon=folium.Icon(color="green", icon="tint", prefix="fa")
+                    ).add_to(m)
+                    st.markdown(
+                        f"**{g['rotulo']}** — {g['precio']} €/L — {g['direccion']} ({g['municipio']})"
+                    )
+            else:
+                st.info("No se encontraron gasolineras cercanas a la ruta para el combustible seleccionado.")
+
+            # Mostrar mapa final
             st_folium(m, width=700, height=500)
+
         else:
             st.error("No se pudo calcular la ruta.")
+
 
