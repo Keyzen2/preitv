@@ -111,14 +111,21 @@ def render_main_app():
     # -----------------------------
     # Panel usuario
     # -----------------------------
-    col_user1, col_user2 = st.columns([3,1])
-    with col_user1:
-        st.write(f"👋 Hola, [Panel de Usuario](#)")  # Se puede enlazar a panel de usuario
-    with col_user2:
-        if st.button("Cerrar sesión"):
-            for k in defaults.keys():
-                st.session_state[k] = defaults[k]
-            st.experimental_rerun()
+    # Columnas para saludo y cerrar sesión
+col_user1, col_user2 = st.columns([3, 1])
+with col_user1:
+    if st.button(f"👋 Hola, {st.session_state.user.email}"):
+        st.session_state.show_user_panel = True
+with col_user2:
+    if st.button("Cerrar sesión"):
+        sign_out()
+        # Resetear session_state a valores por defecto
+        defaults = ["historial", "historial_rutas", "checklist", "user", 
+                    "talleres", "ultima_marca", "ultima_modelo", "ultimo_anio", 
+                    "ultimo_km", "ultimo_combustible", "ruta_datos", "data_loaded", "show_user_panel"]
+        for key in defaults:
+            st.session_state[key] = None if key == "user" else []
+        st.experimental_rerun()
 
     # -----------------------------
     # Buscador de vehículos
