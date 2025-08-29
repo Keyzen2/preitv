@@ -6,7 +6,10 @@ def local_css(file_name):
         st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
 
 def recomendaciones_itv_detalladas(edad, km, combustible):
-    """Devuelve lista de tuplas (tarea, categoría)."""
+    """
+    Devuelve lista de tuplas (tarea, categoría).
+    Categorías: 'Kilometraje', 'Edad del vehículo', 'Combustible específico', 'Otros'
+    """
     recs = []
 
     # Kilometraje
@@ -85,31 +88,15 @@ def resumen_proximos_mantenimientos(km):
     else:
         return "Se han alcanzado la mayoría de hitos de mantenimiento importantes."
 
-# -------------------------------------------------------------------
-# Diccionario de provincias y municipios de España
-# -------------------------------------------------------------------
-ciudades_es = {
-    "Almería": ["Almería", "El Ejido", "Roquetas de Mar", "Níjar", "Vícar", "Adra", "Berja", "Huércal-Overa"],
-    "Madrid": ["Madrid", "Alcalá de Henares", "Getafe", "Leganés", "Fuenlabrada", "Móstoles", "Torrejón de Ardoz"],
-    "Barcelona": ["Barcelona", "Hospitalet de Llobregat", "Badalona", "Sabadell", "Terrassa", "Mataró", "Santa Coloma de Gramenet"],
-    "Valencia": ["Valencia", "Gandía", "Paterna", "Torrent", "Sagunto", "Mislata"],
-    "Sevilla": ["Sevilla", "Dos Hermanas", "Alcalá de Guadaíra", "Utrera", "Écija", "Carmona"],
-    "Zaragoza": ["Zaragoza", "Calatayud", "Ejea de los Caballeros", "Utebo", "Alagón"],
-    "Málaga": ["Málaga", "Marbella", "Fuengirola", "Mijas", "Antequera", "Torremolinos"],
-    "Murcia": ["Murcia", "Cartagena", "Lorca", "Cieza", "San Javier"],
-    "Palma": ["Palma", "Inca", "Manacor", "Llucmajor", "Marratxí"],
-    "Bilbao": ["Bilbao", "Barakaldo", "Getxo", "Portugalete", "Santurtzi"],
-    "Valladolid": ["Valladolid", "Medina del Campo", "Tudela de Duero", "Íscar", "Renedo de Esgueva"],
-    "Córdoba": ["Córdoba", "Puente Genil", "Lucena", "Montilla", "Cabra"],
-    "A Coruña": ["A Coruña", "Santiago de Compostela", "Oleiros", "Arteixo", "Culleredo"],
-    "Granada": ["Granada", "Motril", "Almuñécar", "Baza", "Maracena"],
-    "Oviedo": ["Oviedo", "Gijón", "Avilés", "Siero", "Langreo"],
-    "Santander": ["Santander", "Torrelavega", "Camargo", "Reocín", "Santa Cruz de Bezana"],
-    "Donostia / San Sebastián": ["San Sebastián", "Irún", "Hondarribia", "Pasaia", "Errenteria"],
-    "Pamplona": ["Pamplona", "Tudela", "Barañain", "Huarte", "Villava"],
-    "Vigo": ["Vigo", "Redondela", "Ponteareas", "Cangas", "Porriño"],
-    # ... puedes añadir más poblaciones si quieres ...
-}
+# Lista de ciudades principales de España
+ciudades_es = [
+    "Madrid","Barcelona","Valencia","Sevilla","Zaragoza","Málaga","Murcia","Palma","Bilbao","Alicante",
+    "Córdoba","Valladolid","Vigo","Gijón","Hospitalet de Llobregat","A Coruña","Vitoria-Gasteiz","Granada",
+    "Elche","Oviedo","Badalona","Cartagena","Terrassa","Jerez de la Frontera","Sabadell","Móstoles","Alcalá de Henares",
+    "Pamplona","Fuenlabrada","Almería","Leganés","San Sebastián","Getafe","Burgos","Santander","Albacete","Castellón de la Plana",
+    "Logroño","Badajoz","Huelva","Salamanca","Lleida","Tarragona","Lugo","Jaén","Cáceres","Ourense","Reus","Girona","Melilla",
+    "Ceuta"
+]
 
 
 
