@@ -1,11 +1,42 @@
 import datetime
-import streamlit as st
 import time
+import requests
+import streamlit as st
 from config import APP_TITLE, APP_ICON
 from services.api import get_makes, get_models, search_workshops
+from services.routes import get_route, calcular_coste
 from utils.helpers import local_css, recomendaciones_itv_detalladas, resumen_proximos_mantenimientos, ciudades_es
+import folium
+from streamlit_folium import st_folium
 
+# -----------------------------
+# Función auxiliar para geocodificar con Nominatim
+# -----------------------------
+def geocode_city(city_name):
+    """Devuelve (lat, lon) de una ciudad usando Nominatim."""
+    try:
+        url = "https://nominatim.openstreetmap.org/search"
+        params = {
+            "q": city_name,
+            "format": "json",
+            "limit": 1,
+            "countrycodes": "es"
+        }
+        headers = {"User-Agent": "PreITV-App"}
+        res = requests.get(url, params=params, headers=headers, timeout=10)
+        res.raise_for_status()
+        data = res.json()
+        if data:
+            lat = float(data[0]["lat"])
+            lon = float(data[0]["lon"])
+            return lat, lon
+    except Exception as e:
+        st.error(f"Error geocodificando {city_name}: {e}")
+    return None
+
+# -----------------------------
 # Configuración de página y CSS responsive
+# -----------------------------
 st.set_page_config(page_title=APP_TITLE, page_icon=APP_ICON, layout="centered")
 local_css("styles/theme.css")
 st.markdown("""
@@ -22,7 +53,9 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
+# -----------------------------
 # Inicializar session_state
+# -----------------------------
 defaults = {
     "historial": [],
     "checklist": [],
@@ -35,13 +68,17 @@ defaults = {
 }
 for k, v in defaults.items():
     if k not in st.session_state:
-        st.session_state[k] = v  # CORREGIDO
+        st.session_state[k] = v
 
+# -----------------------------
 # Título
+# -----------------------------
 st.title("🚗 Buscador de Vehículos (Versión PRO)")
 st.write("Selecciona una marca y modelo de Europa para ver recomendaciones y próximos mantenimientos.")
 
+# -----------------------------
 # Marcas y modelos
+# -----------------------------
 with st.spinner("Cargando marcas..."):
     makes = get_makes()
 
@@ -57,7 +94,6 @@ modelo = st.selectbox(
     placeholder="Elige un modelo"
 )
 
-# Datos del vehículo
 anio = st.number_input("Año de matriculación", min_value=1900, max_value=datetime.date.today().year, value=st.session_state.ultimo_anio or 2000)
 km = st.number_input("Kilometraje", min_value=0, step=1000, value=st.session_state.ultimo_km or 0)
 combustible = st.selectbox(
@@ -65,13 +101,14 @@ combustible = st.selectbox(
     index=["Gasolina", "Diésel", "Híbrido", "Eléctrico"].index(st.session_state.ultimo_combustible or "Gasolina")
 )
 
+# -----------------------------
 # Acciones principales
+# -----------------------------
 col1, col2, col3 = st.columns([1, 1, 1])
 
 with col1:
     if st.button("🔍 Buscar información"):
         if marca and modelo:
-            # Guardar última búsqueda
             st.session_state.ultima_marca = marca
             st.session_state.ultima_modelo = modelo
             st.session_state.ultimo_anio = anio
@@ -80,15 +117,12 @@ with col1:
 
             st.success(f"Has seleccionado **{marca} {modelo}**")
 
-            # Resumen de próximos mantenimientos
             resumen = resumen_proximos_mantenimientos(km)
             st.info(f"📅 {resumen}")
 
-            # Generar checklist
             edad = datetime.date.today().year - anio
             st.session_state.checklist = recomendaciones_itv_detalladas(edad, km, combustible)
 
-            # Guardar en histórico
             registro = {
                 "marca": marca,
                 "modelo": modelo,
@@ -116,23 +150,20 @@ with col3:
         st.session_state.checklist = []
         st.success("Histórico y checklist borrados.")
 
-# Checklist agrupado con orden fijo e indicadores de urgencia
+# -----------------------------
+# Checklist agrupado
+# -----------------------------
 if st.session_state.checklist:
     st.subheader("✅ Recomendaciones antes de la ITV")
-
     iconos = {
         "Kilometraje": "⚙",
         "Edad del vehículo": "📅",
         "Combustible específico": "🔋",
         "Otros": "🔧"
     }
-
-    # Agrupar por categoría
     grupos = {}
     for tarea, categoria in st.session_state.checklist:
         grupos.setdefault(categoria, []).append(tarea)
-
-    # Orden fijo por categoría
     orden_categorias = ["Kilometraje", "Edad del vehículo", "Combustible específico", "Otros"]
     for cat in orden_categorias:
         if cat in grupos:
@@ -145,13 +176,12 @@ if st.session_state.checklist:
                     color = "orange"
                 st.markdown(f"<span style='color:{color}'>• {tarea}</span>", unsafe_allow_html=True)
 
-# ------------------------------------------------------------
-# Talleres por ciudad (OSM/Overpass)
-# ------------------------------------------------------------
+# -----------------------------
+# Talleres por ciudad
+# -----------------------------
 st.markdown("---")
 st.subheader("🔧 Talleres en tu ciudad")
 
-# Sugerencias rápidas + campo libre
 colc1, colc2 = st.columns([1, 1])
 with colc1:
     ciudad_sel = st.selectbox("Ciudad (rápido)", ["— Escribe tu ciudad —"] + ciudades_es, index=0)
@@ -170,20 +200,12 @@ if buscar_talleres:
     if not ciudad_busqueda:
         st.warning("Escribe o selecciona una ciudad de España.")
     else:
-        # Mostrar spinner con mensaje personalizado
-        with st.spinner(f"🔍 Buscando talleres en {ciudad_busqueda}..."):
+        with st.spinner(f"Buscando talleres en {ciudad_busqueda}..."):
             st.session_state.talleres = search_workshops(ciudad_busqueda, limit=limite)
-            # Forzar que el spinner se vea al menos un momento aunque la API responda rápido
             time.sleep(0.3)
-
         if not st.session_state.talleres:
-            st.info(
-                "No se han encontrado talleres con datos suficientes en esta ciudad "
-                "o el servicio está temporalmente saturado. "
-                "Prueba de nuevo más tarde o con otra población cercana."
-            )
+            st.info("No se han encontrado talleres con datos suficientes en esta ciudad.")
 
-# Mostrar resultados de talleres
 if st.session_state.talleres:
     for i, t in enumerate(st.session_state.talleres, start=1):
         nombre = t.get("name") or "Taller sin nombre"
@@ -193,22 +215,7 @@ if st.session_state.talleres:
         lat = t.get("lat")
         lon = t.get("lon")
         oh = t.get("opening_hours")
-
         linea_titulo = f"**{i}. {nombre}**"
         if web:
             linea_titulo = f"[{linea_titulo}]({web})"
-
-        st.markdown(linea_titulo)
-        if addr:
-            st.markdown(f"- **Dirección:** {addr}")
-        if tel:
-            st.markdown(f"- **Teléfono:** [Llamar](tel:{tel})")
-        if oh:
-            st.markdown(f"- **Horario:** {oh}")
-        if lat and lon:
-            osm = f"https://www.openstreetmap.org/?mlat={lat}&mlon={lon}#map=17/{lat}/{lon}"
-            st.markdown(f"- **Mapa:** [Ver en OpenStreetMap]({osm})")
-        st.markdown("---")
-
-
 
