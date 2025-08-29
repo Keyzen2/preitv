@@ -262,26 +262,32 @@ def render_main_app():
             st.warning(f"No se pudo renderizar el mapa: {e}")
 
     # -----------------------------
-    # Histórico de rutas
-    # -----------------------------
-    st.markdown("---")
-    st.subheader("📜 Histórico de rutas")
-    if st.session_state.historial_rutas:
-        with st.expander("Ver historial de rutas", expanded=True):
-            for r in st.session_state.historial_rutas:
-                st.markdown(
-                    f"**{r['origen']} → {r['destino']}** — {r['distancia_km']} km — "
-                    f"{r['duracion']} — {r['consumo_l']} L — {r['coste']} €"
-                )
-    else:
-        st.info("Aún no has guardado rutas en esta sesión.")
+# Histórico de rutas
+# -----------------------------
+st.markdown("---")
+st.subheader("📜 Histórico de rutas")
 
-    # Botón para limpiar rutas locales de la sesión
-    if st.button("🗑 Limpiar historial de la sesión actual"):
-        st.session_state.historial_rutas = []
-        st.session_state.ruta_datos = None
-        st.caption("Esta acción no afecta a tu historial guardado permanentemente en tu cuenta.")
-        st.success("Historial de rutas de la sesión actual borrado.")
+if st.session_state.historial_rutas:
+    with st.expander("Ver rutas guardadas en esta sesión", expanded=True):
+        for i, r in enumerate(st.session_state.historial_rutas, start=1):
+            origen = r.get("origen", "Desconocido")
+            destino = r.get("destino", "Desconocido")
+            distancia = r.get("distancia_km", 0)
+            duracion = r.get("duracion", "N/A")
+            consumo = r.get("consumo_l", 0)
+            coste = r.get("coste", 0)
+            st.markdown(
+                f"**{i}. {origen} → {destino}** — {distancia} km — {duracion} — {consumo} L — {coste} €"
+            )
+else:
+    st.info("Aún no has guardado rutas en esta sesión.")
+
+# Botón para borrar el histórico de rutas de la sesión actual
+if st.button("🗑 Limpiar historial de la sesión actual"):
+    st.session_state.historial_rutas = []
+    st.session_state.ruta_datos = None
+    st.success("Historial de rutas de la sesión actual borrado.")
+    st.caption("Esto no afecta al historial guardado permanentemente en tu cuenta.")
 
 # -----------------------------
 # Flujo principal
