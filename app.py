@@ -1,8 +1,8 @@
 import datetime
 import streamlit as st
 from config import APP_TITLE, APP_ICON
-from services.api import get_makes, get_models, get_car_image
-from utils.helpers import local_css, recomendaciones_itv_coste
+from services.api import get_makes, get_models, get_brand_image
+from utils.helpers import local_css, recomendaciones_itv
 
 # Configuración
 st.set_page_config(page_title=APP_TITLE, page_icon=APP_ICON, layout="centered")
@@ -30,25 +30,21 @@ if st.button("🔍 Buscar información"):
     if marca and modelo:
         st.success(f"Has seleccionado **{marca} {modelo}**")
 
-        # Imagen del coche
-        img_url = get_car_image(marca, modelo)
+        # Imagen genérica de la marca desde Wikipedia
+        img_url = get_brand_image(marca)
         if img_url:
-            st.image(img_url, caption=f"{marca} {modelo}", use_column_width=True)
+            st.image(img_url, caption=f"{marca}", use_column_width=True)
         else:
-            st.info("No se encontró imagen para este modelo.")
+            st.info("No se encontró imagen para esta marca.")
 
-        # Checklist con coste
+        # Guardar checklist en sesión
         edad = datetime.date.today().year - anio
-        recomendaciones = recomendaciones_itv_coste(edad, km, combustible)
-
-        if recomendaciones:
-            st.subheader("✅ Recomendaciones antes de la ITV")
-            total = 0
-            for tarea, motivo, coste in recomendaciones:
-                st.checkbox(f"{tarea} — {motivo} (≈ {coste} €)", value=False)
-                total += coste
-            st.markdown(f"**💰 Coste estimado total:** ≈ {total} €")
-        else:
-            st.info("No hay recomendaciones específicas para este vehículo.")
+        st.session_state.checklist = recomendaciones_itv(edad, km, combustible)
     else:
         st.warning("Selecciona una marca y modelo válido.")
+
+# Mostrar checklist persistente
+if "checklist" in st.session_state and st.session_state.checklist:
+    st.subheader("✅ Recomendaciones antes de la ITV")
+    for i, tarea in enumerate(st.session_state.checklist):
+        st.checkbox(tarea, key=f"chk_{i}")
