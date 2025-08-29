@@ -2,7 +2,7 @@ import datetime
 import streamlit as st
 from config import APP_TITLE, APP_ICON
 from services.api import get_makes, get_models, search_workshops
-from utils.helpers import local_css, recomendaciones_itv_detalladas, resumen_proximos_mantenimientos, SPAIN_CITIES
+from utils.helpers import local_css, recomendaciones_itv_detalladas, resumen_proximos_mantenimientos
 
 # Configuración de página y CSS responsive
 st.set_page_config(page_title=APP_TITLE, page_icon=APP_ICON, layout="centered")
@@ -34,7 +34,7 @@ defaults = {
 }
 for k, v in defaults.items():
     if k not in st.session_state:
-        st.session_state[k] = v  # inicialización correcta
+        st.session_state[k] = v  # CORREGIDO
 
 # Título
 st.title("🚗 Buscador de Vehículos (Versión PRO)")
@@ -57,24 +57,11 @@ modelo = st.selectbox(
 )
 
 # Datos del vehículo
-anio = st.number_input(
-    "Año de matriculación",
-    min_value=1900,
-    max_value=datetime.date.today().year,
-    value=st.session_state.ultimo_anio or 2000
-)
-km = st.number_input(
-    "Kilometraje",
-    min_value=0,
-    step=1000,
-    value=st.session_state.ultimo_km or 0
-)
+anio = st.number_input("Año de matriculación", min_value=1900, max_value=datetime.date.today().year, value=st.session_state.ultimo_anio or 2000)
+km = st.number_input("Kilometraje", min_value=0, step=1000, value=st.session_state.ultimo_km or 0)
 combustible = st.selectbox(
-    "Combustible",
-    ["Gasolina", "Diésel", "Híbrido", "Eléctrico"],
-    index=["Gasolina", "Diésel", "Híbrido", "Eléctrico"].index(
-        st.session_state.ultimo_combustible or "Gasolina"
-    )
+    "Combustible", ["Gasolina", "Diésel", "Híbrido", "Eléctrico"],
+    index=["Gasolina", "Diésel", "Híbrido", "Eléctrico"].index(st.session_state.ultimo_combustible or "Gasolina")
 )
 
 # Acciones principales
@@ -83,6 +70,7 @@ col1, col2, col3 = st.columns([1, 1, 1])
 with col1:
     if st.button("🔍 Buscar información"):
         if marca and modelo:
+            # Guardar última búsqueda
             st.session_state.ultima_marca = marca
             st.session_state.ultima_modelo = modelo
             st.session_state.ultimo_anio = anio
@@ -117,9 +105,7 @@ with col2:
         if st.session_state.historial:
             st.subheader("Histórico de coches consultados en esta sesión")
             for item in st.session_state.historial:
-                st.markdown(
-                    f"**{item['marca']} {item['modelo']}** — {item['anio']} — {item['km']} km — {item['combustible']}"
-                )
+                st.markdown(f"**{item['marca']} {item['modelo']}** — {item['anio']} — {item['km']} km — {item['combustible']}")
         else:
             st.info("Aún no has consultado ningún coche.")
 
@@ -145,27 +131,33 @@ if st.session_state.checklist:
     for tarea, categoria in st.session_state.checklist:
         grupos.setdefault(categoria, []).append(tarea)
 
+    # Orden fijo por categoría
     orden_categorias = ["Kilometraje", "Edad del vehículo", "Combustible específico", "Otros"]
     for cat in orden_categorias:
         if cat in grupos:
             st.markdown(f"**{iconos[cat]} {cat}**")
             for tarea in grupos[cat]:
                 color = "green"
+                # Reglas de urgencia simples
                 if any(word in tarea.lower() for word in ["correa", "pastillas", "aceite"]) and km >= 60000:
                     color = "red"
                 elif any(word in tarea.lower() for word in ["correa", "pastillas", "aceite"]) and km >= 50000:
                     color = "orange"
+
                 st.markdown(f"<span style='color:{color}'>• {tarea}</span>", unsafe_allow_html=True)
 
 # ------------------------------------------------------------
-# Talleres por ciudad (Overpass API)
+# Talleres por ciudad (OSM/Overpass)
 # ------------------------------------------------------------
 st.markdown("---")
 st.subheader("🔧 Talleres en tu ciudad")
 
+from utils.helpers import ciudades_es  # lista de todas las ciudades de España
+
+# Sugerencias rápidas + campo libre
 colc1, colc2 = st.columns([1, 1])
 with colc1:
-    ciudad_sel = st.selectbox("Ciudad (rápido)", ["— Escribe tu ciudad —"] + SPAIN_CITIES, index=0)
+    ciudad_sel = st.selectbox("Ciudad (rápido)", ["— Escribe tu ciudad —"] + ciudades_es, index=0)
 with colc2:
     ciudad_txt = st.text_input("O escribe tu ciudad", value="" if ciudad_sel == "— Escribe tu ciudad —" else "")
 
