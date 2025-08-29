@@ -1,0 +1,17 @@
+body {
+    background-color: #f9fafb;
+    font-family: 'Segoe UI', sans-serif;
+}
+.stSelectbox, .stTextInput, .stButton button {
+    border-radius: 12px;
+}
+.stButton button {
+    background-color: #007bff;
+    color: white;
+    font-weight: bold;
+    border: none;
+    padding: 0.6em 1.2em;
+}
+.stButton button:hover {
+    background-color: #0056b3;
+}
