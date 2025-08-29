@@ -276,9 +276,14 @@ if calcular_ruta:
 
         if ruta:
             distancia_km, duracion_min, coords_linea = ruta
+            # Duración en horas y minutos
+            horas = int(duracion_min // 60)
+            minutos = int(duracion_min % 60)
+            duracion_str = f"{horas} h {minutos} min" if horas > 0 else f"{minutos} min"
+            
             litros, coste = calcular_coste(distancia_km, consumo, precio)
-
-            st.success(f"Distancia: {distancia_km:.1f} km — Duración: {duracion_min:.0f} min")
+           
+            st.success(f"Distancia: {distancia_km:.1f} km — Duración: {duracion_str}")
             st.info(f"Consumo estimado: {litros} L — Coste estimado: {coste} €")
 
             # Mapa base
