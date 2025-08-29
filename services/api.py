@@ -40,24 +40,18 @@ def get_models(make: str):
 @st.cache_data(ttl=3600)
 def search_workshops(city: str, limit: int = 5):
     """
-    Busca talleres (amenity=car_repair) en una ciudad española usando Overpass API.
-    Devuelve hasta 'limit' resultados.
+    Busca talleres (amenity=car_repair) en una ciudad de España usando Overpass API.
+    Devuelve hasta 'limit' resultados con nombre, dirección, teléfono, web, horario y coordenadas.
     """
     city = city.strip()
     if not city:
         return []
 
     overpass_url = "https://overpass-api.de/api/interpreter"
-    city_escaped = city.replace('"', '\\"')
-
     query = f"""
     [out:json][timeout:25];
-    area["boundary"="administrative"]["name"="{city_escaped}"]["admin_level"="8"];
-    (
-      node["amenity"="car_repair"](area);
-      way["amenity"="car_repair"](area);
-      relation["amenity"="car_repair"](area);
-    );
+    area["boundary"="administrative"]["name"="{city}"]["ISO3166-1"="ES"]["admin_level"~"^(8|9|10)$"];
+    (node["amenity"="car_repair"](area); way["amenity"="car_repair"](area); relation["amenity"="car_repair"](area););
     out center {limit};
     """
 
@@ -74,11 +68,10 @@ def search_workshops(city: str, limit: int = 5):
 
     elements = data.get("elements", [])
     if not elements:
-        logging.info(f"No se encontraron talleres en {city}")
         return []
 
     def extract(el):
-        tags = el.get("tags") or {}
+        tags = el.get("tags", {}) or {}
         name = tags.get("name")
         phone = tags.get("phone") or tags.get("contact:phone")
         website = tags.get("website") or tags.get("contact:website")
@@ -90,6 +83,7 @@ def search_workshops(city: str, limit: int = 5):
             center = el.get("center") or {}
             lat, lon = center.get("lat"), center.get("lon")
 
+        # Dirección
         street = tags.get("addr:street")
         housenumber = tags.get("addr:housenumber")
         postcode = tags.get("addr:postcode")
@@ -102,6 +96,7 @@ def search_workshops(city: str, limit: int = 5):
             if postcode or city_tag: parts.append(f"{postcode or ''} {city_tag}".strip())
             address = ", ".join(parts)
 
+        # Score heurístico
         score = 0
         if name: score += 3
         if phone: score += 2
@@ -120,8 +115,10 @@ def search_workshops(city: str, limit: int = 5):
             "score": score
         }
 
-    items = sorted([extract(e) for e in elements], key=lambda x: (-x["score"], (x["name"] or "ZZZZ")))
+    items = [extract(e) for e in elements]
+    items = sorted(items, key=lambda x: (-x["score"], (x["name"] or "ZZZZ")))
     return items[:limit]
+
 
 
 
