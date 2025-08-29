@@ -1,5 +1,6 @@
 import datetime
 import streamlit as st
+import time
 from config import APP_TITLE, APP_ICON
 from services.api import get_makes, get_models, search_workshops
 from utils.helpers import local_css, recomendaciones_itv_detalladas, resumen_proximos_mantenimientos, ciudades_es
@@ -169,10 +170,18 @@ if buscar_talleres:
     if not ciudad_busqueda:
         st.warning("Escribe o selecciona una ciudad de España.")
     else:
-        with st.spinner(f"Buscando talleres en {ciudad_busqueda}..."):
+        # Mostrar spinner con mensaje personalizado
+        with st.spinner(f"🔍 Buscando talleres en {ciudad_busqueda}..."):
             st.session_state.talleres = search_workshops(ciudad_busqueda, limit=limite)
+            # Forzar que el spinner se vea al menos un momento aunque la API responda rápido
+            time.sleep(0.3)
+
         if not st.session_state.talleres:
-            st.info("No se han encontrado talleres con datos suficientes en esta ciudad. Prueba con otra población cercana.")
+            st.info(
+                "No se han encontrado talleres con datos suficientes en esta ciudad "
+                "o el servicio está temporalmente saturado. "
+                "Prueba de nuevo más tarde o con otra población cercana."
+            )
 
 # Mostrar resultados de talleres
 if st.session_state.talleres:
