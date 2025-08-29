@@ -7,11 +7,8 @@ def local_css(file_name):
 
 def recomendaciones_itv_detalladas(edad, km, combustible):
     """
-    Devuelve lista de tuplas (tarea, categoría) con categorías predefinidas:
-    - 'Kilometraje'
-    - 'Edad del vehículo'
-    - 'Combustible específico'
-    - 'Otros'
+    Devuelve lista de tuplas (tarea, categoría).
+    Categorías: 'Kilometraje', 'Edad del vehículo', 'Combustible específico', 'Otros'
     """
     recs = []
 
@@ -72,6 +69,24 @@ def recomendaciones_itv_detalladas(edad, km, combustible):
 
     return recs
 
+def resumen_proximos_mantenimientos(km):
+    """Devuelve texto breve sobre próximos hitos de mantenimiento."""
+    if km < 5000:
+        return "Próximo hito: revisión básica a los 5.000 km."
+    elif km < 10000:
+        return "Próximo hito: alineación y rotación de ruedas a los 10.000 km."
+    elif km < 15000:
+        return "Próximo hito: revisión completa y cambio de aceite a los 15.000 km."
+    elif km < 30000:
+        return "Próximo hito: cambio de pastillas de freno a los 30.000 km."
+    elif km < 40000:
+        return "Próximo hito: sustitución de líquido de frenos a los 40.000 km."
+    elif km < 60000:
+        return "Próximo hito: cambio de filtros y revisión de correa a los 60.000 km."
+    elif km < 80000:
+        return "Próximo hito: revisión completa a los 80.000 km."
+    else:
+        return "Se han alcanzado la mayoría de hitos de mantenimiento importantes."
 
 
 
