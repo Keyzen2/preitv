@@ -212,4 +212,32 @@ else:
         try:
             m = folium.Map(location=datos["coords_origen"], zoom_start=6)
             folium.Marker(datos["coords_origen"], tooltip=f"Origen: {datos['origen']}").add_to(m)
-            folium
+            folium.Marker(datos["coords_destino"], tooltip=f"Destino: {datos['destino']}").add_to(m)
+            folium.PolyLine(
+                [(lat, lon) for lon, lat in datos["coords_linea"]],
+                color="blue", weight=4
+            ).add_to(m)
+            st_folium(m, width=700, height=500)
+        except Exception as e:
+            st.warning(f"No se pudo renderizar el mapa: {e}")
+
+    # -----------------------------
+    # Histórico de rutas
+    # -----------------------------
+    st.markdown("---")
+    st.subheader("📜 Histórico de rutas")
+    if st.session_state.historial_rutas:
+        for r in st.session_state.historial_rutas:
+            st.markdown(
+                f"**{r['origen']} → {r['destino']}** — {r['distancia_km']} km — "
+                f"{r['duracion']} — {r['consumo_l']} L — {r['coste']} €"
+            )
+    else:
+        st.info("Aún no has guardado rutas en esta sesión.")
+
+    # Botón para borrar el histórico de rutas SIEMPRE visible
+    if st.button("🗑 Limpiar rutas"):
+        st.session_state.historial_rutas = []
+        st.session_state.ruta_datos = None
+        st.success("Histórico de rutas borrado.")
+
