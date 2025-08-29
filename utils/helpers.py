@@ -6,10 +6,7 @@ def local_css(file_name):
         st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
 
 def recomendaciones_itv_detalladas(edad, km, combustible):
-    """
-    Devuelve lista de tuplas (tarea, categoría).
-    Categorías: 'Kilometraje', 'Edad del vehículo', 'Combustible específico', 'Otros'
-    """
+    """Devuelve lista de tuplas (tarea, categoría)."""
     recs = []
 
     # Kilometraje
@@ -88,19 +85,31 @@ def resumen_proximos_mantenimientos(km):
     else:
         return "Se han alcanzado la mayoría de hitos de mantenimiento importantes."
 
-# ------------------------------------------------------------
-# Lista de todas las ciudades de España para el selector rápido
-# ------------------------------------------------------------
-SPAIN_CITIES = [
-    "Madrid","Barcelona","Valencia","Sevilla","Zaragoza","Málaga","Murcia","Palma","Bilbao","Valladolid",
-    "Córdoba","A Coruña","Granada","Oviedo","Santander","Donostia / San Sebastián","Pamplona","Vigo",
-    "Almería","Albacete","Badajoz","Burgos","Cáceres","Cartagena","Castellón de la Plana","Ciudad Real",
-    "Cuenca","Gerona","Girona","Huelva","Jaén","León","Lleida","Logroño","Lugo","Ourense","Palencia",
-    "Ponferrada","Reus","San Fernando","Soria","Tarragona","Toledo","Torrejón de Ardoz","Tudela","Valladolid",
-    "Vitoria-Gasteiz","Vélez-Málaga","Zamora","Zarautz","Alcoy","Avilés","Elche","Gijón","Huesca","Lorca",
-    "Lugo","Manresa","Marbella","Mataró","Motril","Orihuela","Puertollano","Salamanca","San Sebastián de los Reyes",
-    "Santa Cruz de Tenerife","Santander","Segovia","Tarrasa","Teruel","Toledo","Torrevieja","Valladolid"
-]
+# -------------------------------------------------------------------
+# Diccionario de provincias y municipios de España
+# -------------------------------------------------------------------
+ciudades_es = {
+    "Almería": ["Almería", "El Ejido", "Roquetas de Mar", "Níjar", "Vícar", "Adra", "Berja", "Huércal-Overa"],
+    "Madrid": ["Madrid", "Alcalá de Henares", "Getafe", "Leganés", "Fuenlabrada", "Móstoles", "Torrejón de Ardoz"],
+    "Barcelona": ["Barcelona", "Hospitalet de Llobregat", "Badalona", "Sabadell", "Terrassa", "Mataró", "Santa Coloma de Gramenet"],
+    "Valencia": ["Valencia", "Gandía", "Paterna", "Torrent", "Sagunto", "Mislata"],
+    "Sevilla": ["Sevilla", "Dos Hermanas", "Alcalá de Guadaíra", "Utrera", "Écija", "Carmona"],
+    "Zaragoza": ["Zaragoza", "Calatayud", "Ejea de los Caballeros", "Utebo", "Alagón"],
+    "Málaga": ["Málaga", "Marbella", "Fuengirola", "Mijas", "Antequera", "Torremolinos"],
+    "Murcia": ["Murcia", "Cartagena", "Lorca", "Cieza", "San Javier"],
+    "Palma": ["Palma", "Inca", "Manacor", "Llucmajor", "Marratxí"],
+    "Bilbao": ["Bilbao", "Barakaldo", "Getxo", "Portugalete", "Santurtzi"],
+    "Valladolid": ["Valladolid", "Medina del Campo", "Tudela de Duero", "Íscar", "Renedo de Esgueva"],
+    "Córdoba": ["Córdoba", "Puente Genil", "Lucena", "Montilla", "Cabra"],
+    "A Coruña": ["A Coruña", "Santiago de Compostela", "Oleiros", "Arteixo", "Culleredo"],
+    "Granada": ["Granada", "Motril", "Almuñécar", "Baza", "Maracena"],
+    "Oviedo": ["Oviedo", "Gijón", "Avilés", "Siero", "Langreo"],
+    "Santander": ["Santander", "Torrelavega", "Camargo", "Reocín", "Santa Cruz de Bezana"],
+    "Donostia / San Sebastián": ["San Sebastián", "Irún", "Hondarribia", "Pasaia", "Errenteria"],
+    "Pamplona": ["Pamplona", "Tudela", "Barañain", "Huarte", "Villava"],
+    "Vigo": ["Vigo", "Redondela", "Ponteareas", "Cangas", "Porriño"],
+    # ... puedes añadir más poblaciones si quieres ...
+}
 
 
 
