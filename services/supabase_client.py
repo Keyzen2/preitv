@@ -2,7 +2,7 @@ from supabase import create_client
 import streamlit as st
 from typing import Optional
 
-# Credenciales desde secrets.toml (configuradas en Streamlit)
+# Credenciales desde secrets.toml
 SUPABASE_URL = st.secrets["SUPABASE_URL"]
 SUPABASE_KEY = st.secrets["SUPABASE_KEY"]
 
@@ -23,28 +23,24 @@ def sign_out():
     """Cerrar sesión."""
     return supabase.auth.sign_out()
 
-def get_user():
-    """Obtener usuario actual."""
-    return supabase.auth.get_user()
-
 # -----------------------------
-# Guardado de búsquedas y rutas
+# Guardado y carga de datos
 # -----------------------------
 def save_search(user_id: Optional[str], city: str, results: dict):
-    """Guardar búsqueda de talleres en la tabla 'searches'."""
+    """Guardar búsqueda de vehículos para usuarios registrados."""
+    if not user_id:
+        return
     try:
-        data = {
-            "user_id": user_id,
-            "city": city,
-            "results": results
-        }
+        data = {"user_id": user_id, "city": city, "results": results}
         supabase.table("searches").insert(data).execute()
     except Exception as e:
         st.error(f"Error guardando búsqueda: {e}")
 
 def save_route(user_id: Optional[str], origin: str, destination: str,
                distance_km: float, duration: str, consumption_l: float, cost: float):
-    """Guardar ruta y coste en la tabla 'searches'."""
+    """Guardar ruta y coste para usuarios registrados."""
+    if not user_id:
+        return
     try:
         data = {
             "user_id": user_id,
@@ -60,27 +56,21 @@ def save_route(user_id: Optional[str], origin: str, destination: str,
     except Exception as e:
         st.error(f"Error guardando ruta: {e}")
 
-# -----------------------------
-# Carga de históricos de usuario
-# -----------------------------
 def load_user_data(user_id: str):
-    """
-    Carga el historial de vehículos y rutas del usuario desde Supabase.
-    Devuelve dos listas: historial_vehiculos, historial_rutas
-    """
+    """Cargar historial de un usuario."""
+    historial = []
+    historial_rutas = []
+    if not user_id:
+        return historial, historial_rutas
     try:
-        # Historial de vehículos
-        vehiculos_resp = supabase.table("searches").select("*").eq("user_id", user_id).execute()
-        vehiculos = vehiculos_resp.data if vehiculos_resp.data else []
-
-        # Separar rutas de búsquedas de vehículos
-        historial_vehiculos = [v for v in vehiculos if "distance_km" not in v.get("results", {})]
-        historial_rutas = [v for v in vehiculos if "distance_km" in v.get("results", {})]
-
-        return historial_vehiculos, historial_rutas
+        res = supabase.table("searches").select("*").eq("user_id", user_id).execute()
+        if res.data:
+            for row in res.data:
+                results = row.get("results", {})
+                if "marca" in results:  # Vehículos
+                    historial.append(results)
+                elif "distance_km" in results:  # Rutas
+                    historial_rutas.append(results)
     except Exception as e:
-        st.error(f"Error cargando históricos: {e}")
-        return [], []
-
-
-
+        st.error(f"Error cargando datos de usuario: {e}")
+    return historial, historial_rutas
