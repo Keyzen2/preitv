@@ -1,140 +1,97 @@
-import sqlite3
-from datetime import datetime
-import bcrypt
+# database.py
+from supabase import create_client, Client
+import streamlit as st
+from typing import List, Dict, Optional
 
-DB_PATH = "data/app.db"
+# -----------------------------
+# Configuración del cliente Supabase
+# -----------------------------
+def get_supabase_client() -> Client:
+    url = st.secrets["SUPABASE_URL"]
+    key = st.secrets["SUPABASE_KEY"]
+    return create_client(url, key)
 
-
-def init_db():
-    conn = sqlite3.connect(DB_PATH)
-    c = conn.cursor()
-
-    # Tabla usuarios
-    c.execute("""
-        CREATE TABLE IF NOT EXISTS usuarios (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            nombre TEXT NOT NULL,
-            email TEXT UNIQUE NOT NULL,
-            password_hash TEXT NOT NULL,
-            is_admin INTEGER DEFAULT 0
-        )
-    """)
-
-    # Tabla rutas
-    c.execute("""
-        CREATE TABLE IF NOT EXISTS rutas (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INTEGER,
-            origen TEXT,
-            destino TEXT,
-            distancia REAL,
-            duracion TEXT,
-            consumo REAL,
-            coste REAL,
-            fecha TEXT,
-            FOREIGN KEY(user_id) REFERENCES usuarios(id)
-        )
-    """)
-
-    # Tabla de configuraciones (ej. logo)
-    c.execute("""
-        CREATE TABLE IF NOT EXISTS config (
-            clave TEXT PRIMARY KEY,
-            valor TEXT
-        )
-    """)
-
-    conn.commit()
-    conn.close()
-
+supabase = get_supabase_client()
 
 # -----------------------------
 # Usuarios
 # -----------------------------
-def create_user(nombre, email, password, is_admin=0):
-    conn = sqlite3.connect(DB_PATH)
-    c = conn.cursor()
-    password_hash = bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt())
-    try:
-        c.execute("INSERT INTO usuarios (nombre, email, password_hash, is_admin) VALUES (?, ?, ?, ?)",
-                  (nombre, email, password_hash, is_admin))
-        conn.commit()
-    except sqlite3.IntegrityError:
-        conn.close()
-        return False
-    conn.close()
-    return True
+def get_current_user() -> Optional[Dict]:
+    """Devuelve datos del usuario logueado"""
+    user = supabase.auth.get_user()
+    if user.data:
+        return user.data
+    return None
 
+def get_all_users() -> List[Dict]:
+    """Solo admins: devuelve todos los usuarios"""
+    response = supabase.table("users").select("*").execute()
+    if response.error:
+        st.error(f"Error al obtener usuarios: {response.error}")
+        return []
+    return response.data
 
-def get_user_by_email(email):
-    conn = sqlite3.connect(DB_PATH)
-    c = conn.cursor()
-    c.execute("SELECT * FROM usuarios WHERE email = ?", (email,))
-    user = c.fetchone()
-    conn.close()
-    return user
+def promote_to_admin(user_id: str):
+    supabase.table("users").update({"role": "admin"}).eq("id", user_id).execute()
 
+def delete_user(user_id: str):
+    supabase.table("users").delete().eq("id", user_id).execute()
 
-def verify_password(password, password_hash):
-    return bcrypt.checkpw(password.encode("utf-8"), password_hash)
+# -----------------------------
+# Vehículos
+# -----------------------------
+def add_vehicle(user_id: str, marca: str, modelo: str, anio: int, km: int, combustible: str):
+    supabase.table("vehiculos").insert({
+        "user_id": user_id,
+        "marca": marca,
+        "modelo": modelo,
+        "anio": anio,
+        "km": km,
+        "combustible": combustible
+    }).execute()
 
-
-def get_all_users():
-    conn = sqlite3.connect(DB_PATH)
-    c = conn.cursor()
-    c.execute("SELECT id, nombre, email, is_admin FROM usuarios")
-    users = c.fetchall()
-    conn.close()
-    return users
-
+def get_user_vehicles(user_id: str) -> List[Dict]:
+    response = supabase.table("vehiculos").select("*").eq("user_id", user_id).execute()
+    if response.error:
+        st.error(f"Error al obtener vehículos: {response.error}")
+        return []
+    return response.data
 
 # -----------------------------
 # Rutas
 # -----------------------------
-def save_route(user_id, origen, destino, distancia, duracion, consumo, coste):
-    conn = sqlite3.connect(DB_PATH)
-    c = conn.cursor()
-    fecha = datetime.now().strftime("%Y-%m-%d %H:%M")
-    c.execute("""INSERT INTO rutas (user_id, origen, destino, distancia, duracion, consumo, coste, fecha)
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
-              (user_id, origen, destino, distancia, duracion, consumo, coste, fecha))
-    conn.commit()
-    conn.close()
+def add_route(user_id: str, origen: str, destino: str, distancia_km: float,
+              duracion: str, consumo_l: float, coste: float):
+    supabase.table("routes").insert({
+        "user_id": user_id,
+        "origen": origen,
+        "destino": destino,
+        "distancia_km": distancia_km,
+        "duracion": duracion,
+        "consumo_l": consumo_l,
+        "coste": coste
+    }).execute()
 
-
-def get_routes_by_user(user_id):
-    conn = sqlite3.connect(DB_PATH)
-    c = conn.cursor()
-    c.execute("SELECT origen, destino, distancia, duracion, consumo, coste, fecha FROM rutas WHERE user_id = ?", (user_id,))
-    rutas = c.fetchall()
-    conn.close()
-    return rutas
-
-
-def get_all_routes():
-    conn = sqlite3.connect(DB_PATH)
-    c = conn.cursor()
-    c.execute("SELECT * FROM rutas")
-    rutas = c.fetchall()
-    conn.close()
-    return rutas
-
+def get_user_routes(user_id: str) -> List[Dict]:
+    response = supabase.table("routes").select("*").eq("user_id", user_id).execute()
+    if response.error:
+        st.error(f"Error al obtener rutas: {response.error}")
+        return []
+    return response.data
 
 # -----------------------------
-# Configuración
+# Configuración de la app (logo, etc.)
 # -----------------------------
-def save_config(clave, valor):
-    conn = sqlite3.connect(DB_PATH)
-    c = conn.cursor()
-    c.execute("INSERT OR REPLACE INTO config (clave, valor) VALUES (?, ?)", (clave, valor))
-    conn.commit()
-    conn.close()
+def get_app_config() -> Dict:
+    response = supabase.table("app_config").select("*").limit(1).execute()
+    if response.error or not response.data:
+        return {}
+    return response.data[0]
 
-
-def get_config(clave):
-    conn = sqlite3.connect(DB_PATH)
-    c = conn.cursor()
-    c.execute("SELECT valor FROM config WHERE clave = ?", (clave,))
-    result = c.fetchone()
-    conn.close()
-    return result[0] if result else None
+def update_app_logo(logo_base64: str):
+    # Si ya existe un registro, actualiza, sino inserta
+    config = get_app_config()
+    if config:
+        supabase.table("app_config").update({"logo_base64": logo_base64}).eq("id", config["id"]).execute()
+    else:
+        supabase.table("app_config").insert({"logo_base64": logo_base64}).execute()
