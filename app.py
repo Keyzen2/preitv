@@ -9,7 +9,7 @@ from services.api import get_makes, get_models
 from services.routes import get_route, calcular_coste
 from services.supabase_client import sign_in, sign_up, sign_out, save_search, save_route, load_user_data
 from utils.helpers import local_css, recomendaciones_itv_detalladas, resumen_proximos_mantenimientos
-from utils.cities import ciudades_es
+from utils.cities import ciudades_es, coords_es
 
 # -----------------------------
 # Configuración de página y CSS
@@ -42,18 +42,13 @@ for k, v in defaults.items():
 # Funciones auxiliares
 # -----------------------------
 def geocode_city(city_name: str):
-    try:
-        url = "https://nominatim.openstreetmap.org/search"
-        params = {"q": city_name, "format": "json", "limit": 1, "countrycodes": "es"}
-        headers = {"User-Agent": "PreITV-App"}
-        res = requests.get(url, params=params, headers=headers, timeout=10)
-        res.raise_for_status()
-        data = res.json()
-        if data:
-            return float(data[0]["lat"]), float(data[0]["lon"])
-    except Exception as e:
-        st.warning(f"Error geocodificando {city_name}: {e}")
-    return None
+    """Devuelve coordenadas de la ciudad desde el diccionario local."""
+    coords = coords_es.get(city_name)
+    if coords:
+        return coords  # tuple (lat, lon)
+    else:
+        st.error(f"No se encontró la ciudad: {city_name}")
+        return None
 
 # -----------------------------
 # Header y footer
