@@ -78,9 +78,11 @@ def render_login_form():
                 try:
                     res = sign_in(email, password)
                     if getattr(res, "user", None):
+                        # Guardamos usuario en session_state
                         st.session_state.user = res.user
-                        st.session_state.data_loaded = False  # Cargar historial al iniciar sesión
-                        st.experimental_rerun()
+                        st.session_state.data_loaded = False  # Para recargar historial
+                        st.success("Sesión iniciada. Recargando la app...")
+                        st.stop()  # Fuerza refresco y carga de la app
                     else:
                         st.error("Credenciales incorrectas")
                 except Exception as e:
