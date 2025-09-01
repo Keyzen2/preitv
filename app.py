@@ -3,11 +3,6 @@ import requests
 import streamlit as st
 import folium
 from streamlit_folium import st_folium
-from config import APP_TITLE, APP_ICON
-from services.api import get_makes, get_models, search_workshops
-from services.routes import get_route, calcular_coste
-from services.supabase_client import sign_in, sign_up, sign_out, save_search, save_route, load_user_data, supabase
-from admin_panel import render_admin_panel
 from supabase import create_client, Client
 from utils.helpers import (
     local_css,
