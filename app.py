@@ -7,7 +7,7 @@ from services.api import get_makes, get_models
 from services.routes import get_route, calcular_coste
 from services.supabase_client import sign_in, sign_up, sign_out, save_search, save_route, load_user_data, supabase
 from utils.helpers import local_css, recomendaciones_itv_detalladas, resumen_proximos_mantenimientos
-from utils.ciudades import ciudades_coords
+from utils.cities import ciudades_coords
 
 # -----------------------------
 # Configuración página y CSS
