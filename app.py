@@ -10,7 +10,7 @@ from services.routes import get_route, calcular_coste
 from services.supabase_client import sign_in, sign_up, sign_out, save_search, save_route, load_user_data
 from utils.helpers import local_css, recomendaciones_itv_detalladas, resumen_proximos_mantenimientos
 from utils.cities import ciudades_es
-from utils.cities import coords_es
+from utils.cities import ciudades_coords
 
 # -----------------------------
 # Configuración de página y CSS
@@ -44,7 +44,7 @@ for k, v in defaults.items():
 # -----------------------------
 def geocode_city(city_name: str):
     """Devuelve coordenadas de la ciudad desde el diccionario local."""
-    coords = coords_es.get(city_name)
+    coords = ciudades_coords.get(city_name)
     if coords:
         return coords  # tuple (lat, lon)
     else:
