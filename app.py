@@ -138,64 +138,69 @@ def render_user_panel():
 # Render App Principal
 # -----------------------------
 def render_main_app():
-    # Carga historial desde Supabase solo si hay usuario y no cargado
-    if st.session_state.user and not st.session_state.data_loaded:
+    # Header
+    st.markdown(
+        """
+        <div style="display:flex; align-items:center; justify-content:space-between;">
+            <img src="logo.png" width="150"/>
+            <h1 style="margin:0;">PreITV</h1>
+        </div>
+        <hr>
+        """,
+        unsafe_allow_html=True
+    )
+
+    # Inicializar Supabase
+    if "supabase" not in st.session_state:
+        from services.supabase_client import supabase
+        st.session_state.supabase = supabase
+
+    # Cargar historial de usuario si hay login
+    if st.session_state.user and not st.session_state.get("data_loaded"):
         historial, historial_rutas = load_user_data(str(st.session_state.user.id))
         st.session_state.historial = historial
         st.session_state.historial_rutas = historial_rutas
         st.session_state.data_loaded = True
 
-    # Tabs dinámicas
+    # Tabs principales
+    tabs = ["🚗 Vehículos", "🗺️ Rutas"]
     if st.session_state.user:
-        tab_busqueda, tab_rutas, tab_historial, tab_panel = st.tabs(
-            ["Búsqueda de vehículos", "Planificador de rutas", "Historial de búsquedas y rutas", "Panel de usuario"]
-        )
-    else:
-        tab_busqueda, tab_rutas = st.tabs(
-            ["Búsqueda de vehículos", "Planificador de rutas"]
-        )
+        tabs.append("📜 Historial de búsquedas")
+        tabs.append("👤 Panel de usuario")
 
-    # -----------------------------
-    # TAB: Búsqueda de vehículos
-    # -----------------------------
-    with tab_busqueda:
-        if not st.session_state.user:
-            st.warning("⚠️ Para guardar tus búsquedas, regístrate o inicia sesión.")
+    tab_selected = st.tabs(tabs)
+
+    # ----------------- TAB VEHÍCULOS -----------------
+    with tab_selected[0]:
         st.subheader("🚗 Buscador de Vehículos")
-        makes = get_makes()
+        with st.spinner("Cargando marcas..."):
+            makes = get_makes()
         marca = st.selectbox("Marca", options=makes)
         modelos = get_models(marca) if marca else []
         modelo = st.selectbox("Modelo", options=modelos)
         anio = st.number_input("Año de matriculación", min_value=1900, max_value=datetime.date.today().year)
         km = st.number_input("Kilometraje", min_value=0, step=1000)
         combustible = st.selectbox("Combustible", ["Gasolina", "Diésel", "Híbrido", "Eléctrico"])
+
         if st.button("🔍 Buscar información"):
+            st.success(f"Has seleccionado **{marca} {modelo}**")
             resumen = resumen_proximos_mantenimientos(km)
             st.info(f"📅 {resumen}")
             checklist = recomendaciones_itv_detalladas(datetime.date.today().year - anio, km, combustible)
-            st.session_state.checklist = checklist
-            registro = {"marca": marca, "modelo": modelo, "anio": anio, "km": km, "combustible": combustible}
+            for tarea, cat in checklist:
+                st.markdown(f"- **{cat}:** {tarea}")
+
+            # Guardar solo si hay usuario logueado
             if st.session_state.user:
+                registro = {"marca": marca, "modelo": modelo, "anio": anio, "km": km, "combustible": combustible}
                 if registro not in st.session_state.historial:
                     st.session_state.historial.append(registro)
                     save_search(str(st.session_state.user.id), f"{marca} {modelo}", registro)
+            else:
+                st.warning("🔒 Regístrate o inicia sesión para guardar tus búsquedas.")
 
-        if st.session_state.user and st.session_state.historial:
-            with st.expander("📜 Coches consultados", expanded=True):
-                for item in st.session_state.historial:
-                    st.markdown(f"**{item['marca']} {item['modelo']}** — {item['anio']} — {item['km']} km — {item['combustible']}")
-
-        if st.session_state.checklist:
-            st.subheader("✅ Recomendaciones antes de la ITV")
-            for tarea, cat in st.session_state.checklist:
-                st.markdown(f"- **{cat}:** {tarea}")
-
-    # -----------------------------
-    # TAB: Planificador de rutas
-    # -----------------------------
-    with tab_rutas:
-        if not st.session_state.user:
-            st.warning("⚠️ Para guardar rutas, regístrate o inicia sesión.")
+    # ----------------- TAB RUTAS -----------------
+    with tab_selected[1]:
         st.subheader("🗺️ Planificador de ruta y coste")
         origen_nombre = st.selectbox("Ciudad de origen", options=ciudades_es, index=ciudades_es.index("Almería"))
         destino_nombre = st.selectbox("Ciudad de destino", options=ciudades_es, index=ciudades_es.index("Sevilla"))
@@ -211,7 +216,7 @@ def render_main_app():
                 ruta = get_route((lon_o, lat_o), (lon_d, lat_d))
                 if ruta:
                     distancia_km, duracion_min, coords_linea = ruta
-                    horas, minutos = int(distancia_min // 60), int(distancia_min % 60)
+                    horas, minutos = int(duracion_min // 60), int(duracion_min % 60)
                     duracion_str = f"{horas} h {minutos} min" if horas > 0 else f"{minutos} min"
                     litros, coste = calcular_coste(distancia_km, consumo, precio)
 
@@ -239,54 +244,76 @@ def render_main_app():
                         if registro_ruta not in st.session_state.historial_rutas:
                             st.session_state.historial_rutas.append(registro_ruta)
                             save_route(
-                                str(st.session_state.user.id),
-                                origen_nombre,
-                                destino_nombre,
-                                distancia_km,
-                                duracion_str,
-                                litros,
-                                coste
+                                user_id=str(st.session_state.user.id),
+                                origin=origen_nombre,
+                                destination=destino_nombre,
+                                distance_km=distancia_km,
+                                duration=duracion_str,
+                                consumption_l=litros,
+                                cost=coste
                             )
-                else:
-                    st.warning("No se pudo calcular la ruta")
+                    else:
+                        st.warning("🔒 Regístrate o inicia sesión para guardar tus rutas.")
             else:
-                st.warning("No se pudo obtener la ubicación de una o ambas ciudades")
+                st.error("No se pudo obtener la ubicación de una o ambas ciudades.")
 
-        # Mostrar mapa
+        # Mostrar datos de la ruta
         if st.session_state.ruta_datos:
-            datos = st.session_state.ruta_datos
-            st.success(f"Distancia: {datos['distancia_km']:.1f} km — Duración: {datos['duracion']}")
-            st.info(f"Consumo estimado: {datos['litros']} L — Coste estimado: {datos['coste']} €")
+            d = st.session_state.ruta_datos
+            st.success(f"Distancia: {d['distancia_km']:.1f} km — Duración: {d['duracion']}")
+            st.info(f"Consumo estimado: {d['litros']} L — Coste estimado: {d['coste']} €")
             try:
-                m = folium.Map(location=datos["coords_origen"], zoom_start=6)
-                folium.Marker(datos["coords_origen"], tooltip=f"Origen: {datos['origen']}", icon=folium.Icon(color="green", icon="play")).add_to(m)
-                folium.Marker(datos["coords_destino"], tooltip=f"Destino: {datos['destino']}", icon=folium.Icon(color="red", icon="stop")).add_to(m)
-                folium.PolyLine([(lat, lon) for lon, lat in datos["coords_linea"]], color="blue", weight=5).add_to(m)
+                m = folium.Map(location=d["coords_origen"], zoom_start=6)
+                folium.Marker(d["coords_origen"], tooltip=f"Origen: {d['origen']}", icon=folium.Icon(color="green")).add_to(m)
+                folium.Marker(d["coords_destino"], tooltip=f"Destino: {d['destino']}", icon=folium.Icon(color="red")).add_to(m)
+                folium.PolyLine([(lat, lon) for lon, lat in d["coords_linea"]], color="blue", weight=5).add_to(m)
                 st_folium(m, width=700, height=500)
             except Exception as e:
                 st.warning(f"No se pudo renderizar el mapa: {e}")
 
-    # -----------------------------
-    # TAB: Historial (solo usuarios)
-    # -----------------------------
-    if st.session_state.user:
-        with tab_historial:
+    # ----------------- TAB HISTORIAL -----------------
+    if st.session_state.user and len(tabs) > 2:
+        with tab_selected[2]:
             st.subheader("📜 Historial de búsquedas")
             if st.session_state.historial:
-                for i, item in enumerate(st.session_state.historial, start=1):
-                    st.markdown(f"**{i}. {item['marca']} {item['modelo']}** — {item['anio']} — {item['km']} km — {item['combustible']}")
+                with st.expander("Ver coches consultados", expanded=True):
+                    for item in st.session_state.historial:
+                        st.markdown(f"**{item.get('marca','N/A')} {item.get('modelo','N/A')}** — {item.get('anio','N/A')} — {item.get('km','N/A')} km — {item.get('combustible','N/A')}")
             else:
-                st.info("No hay búsquedas guardadas")
+                st.info("Aún no has guardado búsquedas.")
+
             st.subheader("📜 Historial de rutas")
             if st.session_state.historial_rutas:
-                for i, r in enumerate(st.session_state.historial_rutas, start=1):
-                    st.markdown(f"**{i}. {r['origen']} → {r['destino']}** — {r['distancia_km']} km — {r['duracion']} — {r['consumo_l']} L — {r['coste']} €")
-            else:
-                st.info("No hay rutas guardadas")
+                with st.expander("Ver rutas guardadas en esta sesión", expanded=True):
+                    for i, r in enumerate(st.session_state.historial_rutas, start=1):
+                        origen = r.get("origen", "Desconocido")
+                        destino = r.get("destino", "Desconocido")
+                        distancia = r.get("distancia_km", 0)
+                        duracion = r.get("duracion", "N/A")
+                        consumo = r.get("consumo_l", 0)
+                        coste = r.get("coste", 0)
+                        st.markdown(
+                            f"**{i}. {origen} → {destino}** — {distancia} km — {duracion} — {consumo} L — {coste} €"
+                        )
+                if st.button("🗑 Limpiar historial de la sesión actual"):
+                    st.session_state.historial_rutas = []
+                    st.session_state.ruta_datos = None
+                    st.success("Historial de rutas de la sesión actual borrado.")
+                    st.caption("Esto no afecta al historial guardado permanentemente en tu cuenta.")
 
-        # Panel de usuario
-        with tab_panel:
+    # ----------------- TAB PANEL DE USUARIO -----------------
+    if st.session_state.user and len(tabs) > 3:
+        with tab_selected[3]:
             render_user_panel()
+
+    # Footer
+    st.markdown(
+        """
+        <hr>
+        <p style="text-align:center; color:gray;">&copy; 2025 PreITV. Todos los derechos reservados.</p>
+        """,
+        unsafe_allow_html=True
+    )
 
 # -----------------------------
 # Flujo principal
