@@ -1,17 +1,11 @@
+/* Ejemplo de tema CSS para Streamlit */
 body {
-    background-color: #f9fafb;
-    font-family: 'Segoe UI', sans-serif;
+    background-color: #f5f5f5;
 }
-.stSelectbox, .stTextInput, .stButton button {
-    border-radius: 12px;
+h1, h2, h3, h4, h5, h6 {
+    color: #333333;
 }
-.stButton button {
-    background-color: #007bff;
+.stButton>button {
+    background-color: #4CAF50;
     color: white;
-    font-weight: bold;
-    border: none;
-    padding: 0.6em 1.2em;
-}
-.stButton button:hover {
-    background-color: #0056b3;
 }
