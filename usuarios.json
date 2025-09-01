@@ -1,0 +1,14 @@
+{
+  "preitv": {
+    "password": "preitv",
+    "role": "admin"
+  },
+  "usuario1": {
+    "password": "abcd",
+    "role": "user"
+  },
+  "usuario2": {
+    "password": "qwerty",
+    "role": "user"
+  }
+}
