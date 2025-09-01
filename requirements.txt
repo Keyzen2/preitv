@@ -1,7 +1,14 @@
-streamlit==1.39.0
-requests==2.32.3
-pillow==10.4.0
-folium
-streamlit-folium
-supabase
-st-supabase-connection
+# Streamlit para la interfaz web
+streamlit>=1.25
+
+# Folium para mapas y st_folium para integrar Folium con Streamlit
+folium>=0.14
+streamlit-folium>=0.10
+
+# Requests para llamadas HTTP a APIs externas (geocoding)
+requests>=2.31
+
+# Supabase para autenticación y almacenamiento de datos
+supabase>=1.0
+
+# Opcional: typing y datetime vienen con Python 3.13
