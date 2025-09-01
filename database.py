@@ -1,4 +1,3 @@
-# database.py
 from supabase import create_client, Client
 import streamlit as st
 from typing import List, Dict, Optional
