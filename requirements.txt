@@ -1,7 +1,14 @@
+# Streamlit para la interfaz
 streamlit==1.39.0
-supabase-py==2.3.0
-pandas==2.0.3
-numpy==1.26.0
-Pillow==10.0.0
-requests==2.31.0
-pyyaml==6.0
+
+# Cliente oficial de Supabase
+supabase-py>=1.3.0
+
+# Requests para llamadas HTTP
+requests>=2.31.0
+
+# Rich para logs y métricas en consola (opcional, recomendado)
+rich>=14.1.0
+
+# Pandas para manipulación de datos de tablas si lo necesitas
+pandas>=2.1.0
