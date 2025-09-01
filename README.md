@@ -1,15 +1,29 @@
-# 🚗 Buscador de Vehículos (Versión PRO)
+# PreITV App
 
-Aplicación web en Streamlit para buscar marcas y modelos de vehículos disponibles en Europa,
-usando la API pública de NHTSA.
+**PreITV** es una aplicación web que permite a los usuarios consultar información de vehículos y planificar rutas entre ciudades de España.  
+El login es opcional: cualquier persona puede acceder a la app, pero solo los usuarios registrados podrán **guardar búsquedas de vehículos y rutas** en Supabase.
 
-## 🚀 Despliegue en Streamlit Cloud
+---
 
-1. Sube este repositorio a GitHub.
-2. Crea una nueva app en [Streamlit Cloud](https://share.streamlit.io).
-3. Selecciona este repo y el archivo `app.py` como entry point.
-4. Asegúrate de que `requirements.txt` esté en la raíz.
+## 🔹 Funcionalidades
 
-## 💻 Estructura
+- Consultar información de vehículos por marca, modelo, año y combustible.  
+- Recibir recomendaciones antes de la ITV según edad del vehículo, kilometraje y tipo de combustible.  
+- Planificar rutas entre ciudades españolas con cálculo de distancia, tiempo estimado, consumo y coste.  
+- Guardar historial de consultas y rutas **solo para usuarios registrados**.  
+- Panel de usuario para cambiar nombre y contraseña.  
+- Eliminada la búsqueda de talleres, será incorporada más adelante con API de registro.
 
-mi_app_vehiculos/ ├── app.py ├── config.py ├── services/ │ └── api.py ├── utils/ │ └── helpers.py ├── styles/ │ └── theme.css ├── requirements.txt └── README.md
+> ⚠️ Mensaje destacado en la app:  
+> "Si quieres guardar tus búsquedas y rutas, regístrate en la app."
+
+---
+
+## 🔹 Requisitos
+
+- Python 3.13+
+- Instalar dependencias:
+
+```bash
+pip install -r requirements.txt
+
