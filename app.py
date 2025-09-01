@@ -78,11 +78,10 @@ def render_login_form():
                 try:
                     res = sign_in(email, password)
                     if getattr(res, "user", None):
-                        # Guardamos usuario en session_state
                         st.session_state.user = res.user
-                        st.session_state.data_loaded = False  # Para recargar historial
-                        st.success("Sesión iniciada. Recargando la app...")
-                        st.stop()  # Fuerza refresco y carga de la app
+                        st.success("Sesión iniciada")
+                        st.session_state.data_loaded = False  # para recargar historiales
+                        st.experimental_rerun()
                     else:
                         st.error("Credenciales incorrectas")
                 except Exception as e:
@@ -108,27 +107,38 @@ def render_login_form():
 # Panel de usuario
 # -----------------------------
 def render_user_panel():
-    st.subheader(f"👋 Hola, {st.session_state.user.user_metadata.get('full_name','Usuario')}")
+    user_email = getattr(st.session_state.user, "email", None) or st.session_state.user.get("email")
+    user_name = getattr(st.session_state.user, "user_metadata", {}).get("name", "")
+
+    st.subheader(f"👋 Hola, {user_name or user_email}")
+
     with st.expander("⚙️ Configuración de cuenta", expanded=True):
-        nuevo_nombre = st.text_input("Cambiar nombre", value=st.session_state.user.user_metadata.get("full_name",""))
-        nueva_pass = st.text_input("Nueva contraseña", type="password")
-        if st.button("Guardar cambios"):
-            updates = {}
-            if nuevo_nombre != st.session_state.user.user_metadata.get("full_name",""):
-                updates["full_name"] = nuevo_nombre
-            if nueva_pass:
-                updates["password"] = nueva_pass
-            if updates:
+        nuevo_nombre = st.text_input("Cambiar nombre", value=user_name)
+        if st.button("Actualizar nombre"):
+            if nuevo_nombre:
                 try:
-                    from services.supabase_client import supabase
-                    supabase.auth.update_user(updates)
-                    st.success("Cambios guardados correctamente")
-                    st.session_state.user.user_metadata["full_name"] = nuevo_nombre
+                    supabase.auth.update_user({"data": {"name": nuevo_nombre}})
+                    st.success("Nombre actualizado correctamente")
+                    st.session_state.user.user_metadata["name"] = nuevo_nombre
                 except Exception as e:
-                    st.error(f"No se pudieron guardar los cambios: {e}")
+                    st.error(f"Error al actualizar nombre: {e}")
+            else:
+                st.warning("Introduce un nombre válido")
+
+        nueva_pass = st.text_input("Nueva contraseña", type="password")
+        if st.button("Actualizar contraseña"):
+            if nueva_pass:
+                try:
+                    supabase.auth.update_user({"password": nueva_pass})
+                    st.success("Contraseña actualizada correctamente")
+                except Exception as e:
+                    st.error(f"Error al actualizar contraseña: {e}")
+            else:
+                st.warning("Introduce una contraseña válida")
+
     if st.button("Cerrar sesión"):
         sign_out()
-        for k in st.session_state.keys():
+        for k in list(st.session_state.keys()):
             st.session_state[k] = None
         st.experimental_rerun()
 
