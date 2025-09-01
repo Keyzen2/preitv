@@ -1,0 +1,6 @@
+{
+  "logo_path": "assets/logo.png",
+  "theme": "light",
+  "default_city": "Madrid",
+  "allow_signup": false
+}
