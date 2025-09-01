@@ -60,7 +60,7 @@ def geocode_city(city_name: str):
 # -----------------------------
 st.markdown("""
 <div style="display:flex; justify-content:space-between; align-items:center; padding:10px 0;">
-    <img src="https://raw.githubusercontent.com/tu_usuario/tu_repositorio/main/logo.png" width="150">
+    <img src="https://raw.githubusercontent.com/keyzen2/preitv/styles/logo.png" width="150">
     <span style="font-size:14px; color:gray;">© 2025 PreITV</span>
 </div>
 """, unsafe_allow_html=True)
