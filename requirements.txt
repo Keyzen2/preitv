@@ -1,28 +1,8 @@
-# Streamlit y utilidades web
 streamlit==1.39.0
-streamlit-option-menu==0.4.0
-streamlit-tags==0.5.0
-
-# Supabase
-supabase==1.0.0
-postgrest==1.0.2
-pydantic==1.10.2
-
-# Geocoding y mapas
-geopy==2.3.0
-folium==0.14.0
-requests==2.31.0
-
-# Manipulación de imágenes
-Pillow==10.0.0
-base64
-
-# Manejo de datos
+supabase-py==1.2.0
 pandas==2.1.0
+requests==2.32.0
+Pillow==10.1.0
 numpy==1.26.0
-
-# Seguridad y hashing (opcional)
-bcrypt==4.0.1
-
-# Para manejo de archivos JSON
-python-multipart==0.0.6
+urllib3==2.0.4
+python-dotenv==1.0.0
