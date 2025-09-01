@@ -1,14 +1,28 @@
-# Streamlit para la interfaz web
-streamlit>=1.25
+# Streamlit y utilidades web
+streamlit==1.39.0
+streamlit-option-menu==0.4.0
+streamlit-tags==0.5.0
 
-# Folium para mapas y st_folium para integrar Folium con Streamlit
-folium>=0.14
-streamlit-folium>=0.10
+# Supabase
+supabase==1.0.0
+postgrest==1.0.2
+pydantic==1.10.2
 
-# Requests para llamadas HTTP a APIs externas (geocoding)
-requests>=2.31
+# Geocoding y mapas
+geopy==2.3.0
+folium==0.14.0
+requests==2.31.0
 
-# Supabase para autenticación y almacenamiento de datos
-supabase>=1.0
+# Manipulación de imágenes
+Pillow==10.0.0
+base64
 
-# Opcional: typing y datetime vienen con Python 3.13
+# Manejo de datos
+pandas==2.1.0
+numpy==1.26.0
+
+# Seguridad y hashing (opcional)
+bcrypt==4.0.1
+
+# Para manejo de archivos JSON
+python-multipart==0.0.6
