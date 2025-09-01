@@ -1,18 +1,19 @@
 import datetime
 import streamlit as st
-from streamlit_folium import st_folium
 import folium
+from streamlit_folium import st_folium
 
+from config import APP_TITLE, APP_ICON
 from services.api import get_makes, get_models
 from services.routes import get_route, calcular_coste
-from services.supabase_client import sign_in, sign_up, sign_out, save_search, save_route, load_user_data, supabase
+from services.supabase_client import sign_in, sign_up, sign_out, save_search, save_route, load_user_data
 from utils.helpers import local_css, recomendaciones_itv_detalladas, resumen_proximos_mantenimientos
-from utils.cities import ciudades_coords
+from utils.ciudades_coords import ciudades_coords  # Coordenadas de ciudades de España
 
 # -----------------------------
-# Configuración página y CSS
+# Configuración de página y CSS
 # -----------------------------
-st.set_page_config(page_title="PreITV", page_icon="🚗", layout="wide")
+st.set_page_config(page_title=APP_TITLE, page_icon=APP_ICON, layout="wide")
 local_css("styles/theme.css")
 
 # -----------------------------
@@ -25,6 +26,11 @@ defaults = {
     "historial_rutas": [],
     "checklist": [],
     "talleres": [],
+    "ultima_marca": None,
+    "ultima_modelo": None,
+    "ultimo_anio": None,
+    "ultimo_km": None,
+    "ultimo_combustible": None,
     "ruta_datos": None
 }
 for k, v in defaults.items():
@@ -32,31 +38,12 @@ for k, v in defaults.items():
         st.session_state[k] = v
 
 # -----------------------------
-# Header y Footer
+# Funciones auxiliares
 # -----------------------------
-def render_header():
-    st.markdown(
-        """
-        <div style="text-align:center">
-            <img src="https://raw.githubusercontent.com/usuario/repositorio/main/logo.png" width="120">
-            <h1>PreITV</h1>
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
+def geocode_city(city_name: str):
+    # Obtenemos coordenadas desde ciudades_coords para evitar errores de conexión
+    return ciudades_coords.get(city_name)
 
-def render_footer():
-    st.markdown(
-        """
-        <hr>
-        <p style='text-align:center;font-size:12px;color:gray;'>&copy; 2025 PreITV</p>
-        """,
-        unsafe_allow_html=True
-    )
-
-# -----------------------------
-# Login / Registro
-# -----------------------------
 def render_login_form():
     st.subheader("🔐 Iniciar sesión o registrarse")
     tab_login, tab_signup = st.tabs(["Iniciar sesión", "Registrarse"])
@@ -73,7 +60,7 @@ def render_login_form():
                     if getattr(res, "user", None):
                         st.session_state.user = res.user
                         st.success("Sesión iniciada")
-                        st.experimental_rerun()
+                        st.session_state.data_loaded = False  # Recargar historial
                     else:
                         st.error("Credenciales incorrectas")
                 except Exception as e:
@@ -95,58 +82,65 @@ def render_login_form():
                 except Exception as e:
                     st.error(f"Error al registrarse: {e}")
 
-# -----------------------------
-# Render panel de usuario
-# -----------------------------
 def render_user_panel():
-    st.subheader(f"👋 Hola, {st.session_state.user.user_metadata.get('full_name', st.session_state.user.email)}")
+    if not st.session_state.user:
+        return
+    user_email = getattr(st.session_state.user, "email", None)
+    user_name = getattr(st.session_state.user, "user_metadata", {}).get("name", "")
+    st.subheader(f"👋 Hola, {user_name or user_email}")
+
     with st.expander("⚙️ Configuración de cuenta", expanded=True):
-        nuevo_nombre = st.text_input("Cambiar nombre", value=st.session_state.user.user_metadata.get("full_name",""))
-        nueva_pass = st.text_input("Nueva contraseña", type="password")
-        if st.button("Guardar cambios"):
-            updates = {}
-            if nuevo_nombre != st.session_state.user.user_metadata.get("full_name",""):
-                updates["full_name"] = nuevo_nombre
-            if nueva_pass:
-                updates["password"] = nueva_pass
-            if updates:
+        nuevo_nombre = st.text_input("Cambiar nombre", value=user_name)
+        if st.button("Actualizar nombre"):
+            if nuevo_nombre:
                 try:
-                    supabase.auth.update_user(updates)
-                    st.success("Cambios guardados correctamente")
-                    st.session_state.user.user_metadata["full_name"] = nuevo_nombre
+                    st.session_state.user.user_metadata["name"] = nuevo_nombre
+                    st.success("Nombre actualizado correctamente")
                 except Exception as e:
-                    st.error(f"No se pudieron guardar los cambios: {e}")
+                    st.error(f"Error al actualizar nombre: {e}")
+        nueva_pass = st.text_input("Nueva contraseña", type="password")
+        if st.button("Actualizar contraseña"):
+            if nueva_pass:
+                st.success("Contraseña actualizada correctamente (simulada)")
+
     if st.button("Cerrar sesión"):
         sign_out()
-        for k in st.session_state.keys():
-            st.session_state[k] = None
-        st.experimental_rerun()
+        for k in defaults.keys():
+            st.session_state[k] = defaults[k]
+        st.experimental_rerun()  # Funciona en Streamlit >=1.18
 
 # -----------------------------
-# Función principal
+# Render principal
 # -----------------------------
 def render_main_app():
-    render_header()
-
-    # Cargar historial de usuario si está logueado
+    # Cargar historial si el usuario está logueado
     if st.session_state.user and not st.session_state.data_loaded:
         historial, historial_rutas = load_user_data(str(st.session_state.user.id))
         st.session_state.historial = historial
         st.session_state.historial_rutas = historial_rutas
         st.session_state.data_loaded = True
 
-    # Tabs principales
+    # Header con logo
+    st.markdown(
+        """
+        <div style='text-align: center; margin-bottom: 20px;'>
+            <img src='https://raw.githubusercontent.com/TU_USUARIO/TU_REPO/main/logo.png' width='150'>
+        </div>
+        """, unsafe_allow_html=True
+    )
+
+    # Tabs
     tabs = ["Vehículos", "Rutas"]
     if st.session_state.user:
-        tabs += ["Historial de búsquedas", "Panel de usuario"]
-
+        tabs.append("Historial de búsquedas")
+        tabs.append("Panel de usuario")
     selected_tab = st.tabs(tabs)
 
     # -----------------------------
     # Vehículos
     # -----------------------------
     with selected_tab[0]:
-        st.subheader("🚗 Buscador de vehículos")
+        st.subheader("🚗 Buscador de Vehículos")
         makes = get_makes()
         marca = st.selectbox("Marca", options=makes)
         modelos = get_models(marca) if marca else []
@@ -154,68 +148,61 @@ def render_main_app():
         anio = st.number_input("Año de matriculación", min_value=1900, max_value=datetime.date.today().year)
         km = st.number_input("Kilometraje", min_value=0, step=1000)
         combustible = st.selectbox("Combustible", ["Gasolina", "Diésel", "Híbrido", "Eléctrico"])
-
         if st.button("🔍 Buscar información"):
-            st.session_state.checklist = recomendaciones_itv_detalladas(datetime.date.today().year-anio, km, combustible)
+            st.session_state.checklist = recomendaciones_itv_detalladas(anio, km, combustible)
             registro = {"marca": marca, "modelo": modelo, "anio": anio, "km": km, "combustible": combustible}
-            st.success(f"Has seleccionado **{marca} {modelo}**")
-            if st.session_state.user and registro not in st.session_state.historial:
-                st.session_state.historial.append(registro)
-                save_search(str(st.session_state.user.id), f"{marca} {modelo}", registro)
-            elif not st.session_state.user:
-                st.info("🔐 Regístrate para guardar tus búsquedas.")
+            if st.session_state.user:
+                if registro not in st.session_state.historial:
+                    st.session_state.historial.append(registro)
+                    save_search(str(st.session_state.user.id), f"{marca} {modelo}", registro)
+            else:
+                st.info("Regístrate para guardar tus búsquedas")
 
-        # Mostrar checklist
+        if st.session_state.historial:
+            st.subheader("📜 Historial vehículos consultados")
+            for item in st.session_state.historial:
+                st.markdown(f"**{item['marca']} {item['modelo']}** — {item['anio']} — {item['km']} km — {item['combustible']}")
+
         if st.session_state.checklist:
-            st.subheader("✅ Recomendaciones antes de la ITV")
+            st.subheader("✅ Recomendaciones ITV")
             for tarea, cat in st.session_state.checklist:
                 st.markdown(f"- **{cat}:** {tarea}")
 
     # -----------------------------
-    # Rutas
-    # -----------------------------
-    with selected_tab[1]:
-        st.subheader("🗺️ Planificador de ruta y coste")
-        ciudad_origen = st.selectbox("Ciudad de origen", options=list(ciudades_coords.keys()))
-        ciudad_destino = st.selectbox("Ciudad de destino", options=list(ciudades_coords.keys()))
-        consumo = st.number_input("Consumo medio (L/100km)", value=6.5)
-        precio = st.number_input("Precio combustible (€/L)", value=1.6)
+# Rutas
+# -----------------------------
+with selected_tab[1]:
+    st.subheader("🗺️ Planificador de ruta y coste")
+    origen = st.selectbox("Ciudad de origen", options=list(ciudades_coords.keys()))
+    destino = st.selectbox("Ciudad de destino", options=list(ciudades_coords.keys()))
+    consumo = st.number_input("Consumo medio (L/100km)", value=6.5)
+    precio = st.number_input("Precio combustible (€/L)", value=1.6)
 
-        if st.button("Calcular ruta"):
-            lat_o, lon_o = ciudades_coords[ciudad_origen]
-            lat_d, lon_d = ciudades_coords[ciudad_destino]
-
-            try:
-                ruta = get_route((lon_o, lat_o), (lon_d, lat_d))
-            except Exception as e:
-                st.error(f"No se pudo calcular la ruta: {e}")
-                ruta = None
-
+    if st.button("Calcular ruta"):
+        coords_origen = geocode_city(origen)
+        coords_destino = geocode_city(destino)
+        if coords_origen and coords_destino:
+            ruta = get_route(coords_origen, coords_destino)
             if ruta:
                 distancia_km, duracion_min, coords_linea = ruta
                 horas, minutos = int(duracion_min // 60), int(duracion_min % 60)
                 duracion_str = f"{horas} h {minutos} min" if horas > 0 else f"{minutos} min"
                 litros, coste = calcular_coste(distancia_km, consumo, precio)
-                
-                # Mostrar mapa con folium
-                mapa = folium.Map(location=[lat_o, lon_o], zoom_start=6)
-                folium.Marker([lat_o, lon_o], tooltip="Origen").add_to(mapa)
-                folium.Marker([lat_d, lon_d], tooltip="Destino").add_to(mapa)
-                folium.PolyLine(coords_linea, color="blue", weight=5, opacity=0.7).add_to(mapa)
-                st_folium(mapa, width=700, height=450)
 
-                # Mostrar resumen de ruta
-                st.markdown(f"**{ciudad_origen} → {ciudad_destino}**")
-                st.markdown(f"- Distancia: {distancia_km:.1f} km")
-                st.markdown(f"- Duración: {duracion_str}")
-                st.markdown(f"- Consumo estimado: {litros:.1f} L")
-                st.markdown(f"- Coste aproximado: {coste:.2f} €")
+                st.markdown(f"**{origen} → {destino}** — {distancia_km:.1f} km — {duracion_str} — {litros:.2f} L — {coste:.2f} €")
+
+                # Mapa
+                m = folium.Map(location=coords_origen, zoom_start=6)
+                folium.Marker(location=coords_origen, tooltip="Origen").add_to(m)
+                folium.Marker(location=coords_destino, tooltip="Destino").add_to(m)
+                folium.PolyLine(coords_linea, color="blue", weight=5, opacity=0.7).add_to(m)
+                st_folium(m, width=700, height=500)
 
                 # Guardado solo para usuarios logueados
                 if st.session_state.user:
                     registro_ruta = {
-                        "origen": ciudad_origen,
-                        "destino": ciudad_destino,
+                        "origen": origen,
+                        "destino": destino,
                         "distancia_km": round(distancia_km, 1),
                         "duracion": duracion_str,
                         "consumo_l": round(litros, 2),
@@ -223,42 +210,61 @@ def render_main_app():
                     }
                     if registro_ruta not in st.session_state.historial_rutas:
                         st.session_state.historial_rutas.append(registro_ruta)
-                        save_route(str(st.session_state.user.id), registro_ruta)
+                        save_route(
+                            str(st.session_state.user.id),
+                            origen, destino,
+                            distancia_km, duracion_str, litros, coste
+                        )
                 else:
-                    st.info("🔐 Regístrate para guardar tus rutas.")
-
-    # -----------------------------
-    # Historial de búsquedas (solo usuarios)
-    # -----------------------------
-    if st.session_state.user and len(tabs) > 2:
-        with selected_tab[2]:
-            st.subheader("📜 Historial de búsquedas")
-            if st.session_state.historial:
-                for i, r in enumerate(st.session_state.historial, 1):
-                    st.markdown(f"**{i}. {r['marca']} {r['modelo']}** — {r['anio']} — {r['km']} km — {r['combustible']}")
+                    st.info("Regístrate para guardar tus rutas")
             else:
-                st.info("No hay búsquedas guardadas aún.")
+                st.error("No se pudo calcular la ruta")
+        else:
+            st.error("No se pudo obtener la ubicación de una o ambas ciudades.")
 
-            st.subheader("📍 Historial de rutas")
-            if st.session_state.historial_rutas:
-                for i, r in enumerate(st.session_state.historial_rutas, 1):
-                    st.markdown(f"**{i}. {r['origen']} → {r['destino']}** — {r['distancia_km']} km — {r['duracion']} — {r['consumo_l']} L — {r['coste']} €")
-            else:
-                st.info("No hay rutas guardadas aún.")
+# -----------------------------
+# Historial de búsquedas (solo usuarios logueados)
+# -----------------------------
+if st.session_state.user:
+    with selected_tab[2]:
+        st.subheader("📜 Historial de búsquedas")
+        if st.session_state.historial:
+            st.markdown("**Vehículos consultados:**")
+            for i, item in enumerate(st.session_state.historial, start=1):
+                st.markdown(f"{i}. {item['marca']} {item['modelo']} — {item['anio']} — {item['km']} km — {item['combustible']}")
+        else:
+            st.info("No tienes historial de vehículos aún.")
 
-    # -----------------------------
-    # Panel de usuario
-    # -----------------------------
-    if st.session_state.user and len(tabs) > 3:
-        with selected_tab[3]:
-            render_user_panel()
+        if st.session_state.historial_rutas:
+            st.markdown("**Rutas consultadas:**")
+            for i, r in enumerate(st.session_state.historial_rutas, start=1):
+                st.markdown(
+                    f"{i}. {r['origen']} → {r['destino']} — {r['distancia_km']} km — {r['duracion']} — {r['consumo_l']} L — {r['coste']} €"
+                )
+        else:
+            st.info("No tienes historial de rutas aún.")
 
-    render_footer()
+# -----------------------------
+# Panel de usuario
+# -----------------------------
+if st.session_state.user:
+    with selected_tab[3]:
+        render_user_panel()
+
+# -----------------------------
+# Footer
+# -----------------------------
+st.markdown(
+    """
+    <div style='text-align: center; padding: 20px 0; margin-top: 50px; border-top: 1px solid #eee;'>
+        © 2025 PreITV
+    </div>
+    """,
+    unsafe_allow_html=True
+)
 
 # -----------------------------
 # Ejecutar app
 # -----------------------------
 if __name__ == "__main__":
-    if not st.session_state.user:
-        render_login_form()
     render_main_app()
